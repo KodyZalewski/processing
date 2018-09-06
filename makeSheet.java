@@ -1,3 +1,41 @@
+/* 
+* Program Description:
+* 
+* This is a short program that takes the desired study as the first argument, followed by successive subject
+* numbers as the following argument in the form: java makeSheet <STUDY> <SUBJECT_ID> <SUBJECT_ID> ... in 
+* keeping with the Freesurfer format of having a set study directory and subject folders as children.
+*  
+* LOCALPATH is is path to this subject directory on this particular computer, for any other user this should 
+* be changed, likely to the $SUBJECT_DIR environmental variable. LOCALPATH will also be the site of LOCALPROC
+* and LOCALDATA, which are the suffixes of the processing and volumetric data respectively alongside the 
+* spreadsheets themselves.
+* 
+* 			       root
+*  		            |
+*  			    LOCALPATH
+*  			   / 	|	  \
+*      LOCALDATA LOCALPROC study
+*      /            |	        \
+*  data_sheet  processing_sheet  subjects
+* 
+*  Upon loading the OpenOffice component and accessing the XSpreadsheet object, (assuming the path is valid and the 
+*  files present in the subject folder are correct) the program searches the first sheet of the file for a subject 
+*  number corresponding to the name provided by the client. If no strings stored in the cells of the first column 
+*  are matches, the values and the subject number is placed at the end of a list of values (also assumed to be 
+*  subject numbers).
+*  
+*  The QA sheet in the processing folder may or may not exist. It's location is variable depending on the study
+*  so it can be treated as being the third sheet in the spreadsheet following the volumetric data and the thickness file.
+*  Otherwise it's expected to be the second sheet in the processing spreadsheet. The insertion of the QA values is the
+*  only reason the processing sheet is listed here as a variable. 
+*  
+*  The Freesurfer data is expected to be pre-processed beforehand with a volumetric data .txt file and a thickness data
+*  .txt file that are whitespace separated with corresponding columns in the volumetric spreadsheet for both volumetric 
+*  data in the first sheet and thickness values in the second. QA values function in much the same way. 
+*  
+*  KJZ 8.16.2018
+*/
+
 // importing access
 import com.sun.star.beans.*;
 import com.sun.star.uno.RuntimeException;
@@ -28,48 +66,126 @@ public class makeSheet {
     private static XComponentContext      maContext;
     private static XMultiComponentFactory maMCFactory;
     private static XSpreadsheetDocument volSpreadSheetDoc;
-    private static XSpreadsheetDocument qaSpreadSheetDoc; 
-    private static int rowCountFinal; 
+    private static XSpreadsheetDocument qaSpreadSheetDoc;
+    
+    // counter variables
+    private static int rowCountFinalQa = 0;     
+    private static int rowCountFinalVol = 0; 
 	
+    // local final variables
 	private static final String LOCALPATH = "/home/ns-zalewk/Desktop/memorycube/";	
+	private static final String LOCALDATA = "00_DATA";
+	private static final String LOCALPROC = "00_LOGS";
 	
+	// client-specified variables
 	private static String study; 
+	private static String subject;
+	private static List<String> subjectList = new ArrayList<String>();
+	//private static boolean histogram = false; 
 	
-	private static String subject; 
+	// local non-final variables
+	private static String spreadsheetPath;
+	private static String qaSheetPath;
+	private static int qaValue; 
 	
 	public static void main(String args[]) throws IOException, URISyntaxException, IndexOutOfBoundsException, BootstrapException {
 		
-        rowCountFinal = 0;
-        
-		String spreadsheetPath = LOCALPATH + "/00_DATA/" + "FS_" + study + "_volumetricdata.ods"; 
-		String qaSheetPath = LOCALPATH + "/00_LOGS/" + "FS_" + study + "_processingspreadsheet.ods";
+		//getArgs(args);
+		checkArgs(args); // checks to make sure arguments and paths are valid, assigns path to spreadsheets if 
 		
-		if (args.length > 0) {
-			try {
-	            study = args[0];
-	            subject = args[1]; 
-	         } catch (IllegalArgumentException e) {
-	            System.out.println("Incorrect number of command line arguments. Study should be first argument, subject should be second.");
-	            System.exit(1);
-	         }
+		// opens the volumetric spreadsheet and the QA processing spreadsheet if it's available
+		volSpreadSheetDoc = calcOpen(spreadsheetPath);
+		if (qaValue == 1) {
+			qaSpreadSheetDoc = calcOpen(qaSheetPath);
 		}
 		
-		if (study == null || subject == null) {
-			System.out.print("ERROR: Function must have both a study and subject.");
-			System.out.print("In the format: makeSheet <study> <subjectID>");
+		// loops through multiple arguments provided for subject numbers following the study at args[0]
+		//if (subjectList != null) { for (String x : subjectsList) {
+			for (int i = 1; i < args.length; i++) {
+				
+				subject = args[i];
+				
+				insertToSheet(0, volSpreadSheetDoc, subject, study, "_stats", 0);
+				insertToSheet(1, volSpreadSheetDoc, subject, study, "_thickness", 1);
+				if (qaValue == 1) {
+					insertToSheet(qaValue, qaSpreadSheetDoc, subject, study, "final_CNR", 1);
+				} else {
+					insertToSheet(qaValue, volSpreadSheetDoc, subject, study, "final_CNR", 1);
+				}
+				
+				System.out.println( "Subject " + subject + " is located at: " + rowCountFinalVol + " row in the " + study + " volumetric spreadsheet.");
+				System.out.println( "Subject " + subject + " is located at: " + rowCountFinalQa + " row in the " + study + " processing spreadsheet.");
+				System.out.println( subject + " has been added to the spreadsheet successfully!" );
+			}
+		//} }
+		//if (histogram != false) {
+		//	histogramFile(volSpreadSheetDoc, 100, subject, study); 
+		//}	
+		System.exit(0);
+	}
+	
+	
+	// takes the arguments passed to main() as a list of strings, assigns the study variable to the first argument, 
+	// all values after "-s" are assumed to be subject numbers, alongside other arguments that can be passed to the 
+	// program for defined behavior
+	public static void getArgs(String args[]) throws IOException {
+		int counter = 1;
+		study = args[0];
+		
+		for ( String x : args ) {
+			if (x.equals("-s")) { // this means the following strings are subject numbers
+				for (int i = counter; i < args.length; i++) {
+					System.out.println("Adding the statistics for subject " + args[i]);
+					subjectList.add(args[i]);
+				}
+				break;
+			}	
+			/*if (x.equals("-r")) { //argument 1
+				System.out.println("Looking at the values for region " + args[i])
+			}
+			
+			if (x.equals()) { //argument 2
+				
+			}
+			*/
+			counter++;
+		}
+	}
+	
+	// Takes the arguments passed to main() as an array of strings, assigns the study variable to the first argument.
+	// Checks to see if there is a separate log spreadsheet where the QA measures for the subjects would be kept
+	// and returns a respective int value to flag that sheet. If not, it is assumed to be the same sheet as 
+	// volumetric data. If the QA sheet is not there the program engages in unspecified behavior. 
+	public static void checkArgs(String args[]) throws IOException {
+		if (args[0] == null) {
+			System.err.println("ERROR: Function must have both a study and subject. Study should be first argument, subjects should come after.");
+			System.err.println("In the format: makeSheet <study> <subjectID>");
+			System.exit(1);
+		} else {
+			study = args[0];
+		}
+		
+		spreadsheetPath = LOCALPATH + LOCALDATA + "/" + "FS_" + study + "_volumetricdata.ods";
+		qaSheetPath = LOCALPATH + LOCALPROC + "/" + "FS_" + study + "_processingspreadsheet.ods";
+		
+		System.out.println(spreadsheetPath);
+		System.out.println(qaSheetPath);
+		
+		File checkVolFile = new File(spreadsheetPath);
+		File checkQaFile = new File(qaSheetPath);
+		
+		if (!checkVolFile.exists()) {
+			System.err.println("ERROR: The given path for the spreadsheets is invalid.");
+			System.err.println("Make sure the study is valid and the path to the directory is present.");
 			System.exit(1);
 		}
-				
-		volSpreadSheetDoc = calcOpen(spreadsheetPath);
-		qaSpreadSheetDoc = calcOpen(qaSheetPath);
-		
-		insertToSheet(0,volSpreadSheetDoc, subject, study, "_stats", 0);
-		insertToSheet(1,volSpreadSheetDoc, subject, study, "_thickness", 1);
-		insertToSheet(1,qaSpreadSheetDoc, subject, study, "final_CNR", 1);
-
-		//System.out.println( "There are: " + rowCountFinal + " subjects in "+ study + "'s spreadsheet.");
-		System.out.println( subject + " has been added to the spreadsheet successfully!" );
-		System.exit(0);
+		if (checkQaFile.exists()) {			
+			qaValue = 1; 
+		} else { // TODO: At some point, should loop through sheets and check for name of qameasures
+			System.out.println("QA measures are probably located in the same file as volumetric measures.");	
+			qaSheetPath = spreadsheetPath;
+			qaValue = 2; 
+		}
 	}
 	
 	// Takes a sheet index number as int, a spreadsheet of data, subject number as string, study value as string, file suffix/prefix,
@@ -84,11 +200,17 @@ public class makeSheet {
 		} 
 		File file = new File(path); 
 		if (file.exists()) {
-			XSpreadsheet sheet = getDataSheet(index, data); 
-			Scanner subjectFile 
-				= new Scanner(Paths.get(new URI("file://"+path)));
-			readIn(column, 1, subjectFile, sheet, subject, fileName);
-			subjectFile.close();
+			XSpreadsheet sheet = getDataSheet(index, data);
+			if (sheet != null) {
+				Scanner subjectFile 
+					= new Scanner(Paths.get(new URI("file://"+path)));
+				readIn(column, 1, subjectFile, sheet, subject, fileName);
+				subjectFile.close();
+			} else {
+				System.out.println("");
+				System.out.println("The sheet does not exist! Skipping input.");
+				System.out.println("");
+			}
 		} else {
 			System.out.println("");
 			System.out.println("The " + fileName + " file does not exist! Skipping input.");
@@ -109,10 +231,7 @@ public class makeSheet {
 		try {
 			while ( !getCellValueString(aSheet.getCellByPosition(0,rowCount)).equals(subject) && 
 					!getCellValueString(aSheet.getCellByPosition(0,rowCount)).isEmpty()) {
-				rowCount++;
-				if (fileName.equals("_stats")) {
-					rowCountFinal++;
-				}
+					rowCount++;
 			}
 		} catch (IndexOutOfBoundsException e) {
 			e.printStackTrace();
@@ -124,6 +243,13 @@ public class makeSheet {
 		while (lineRead.hasNext()) {
 			insert(aSheet.getCellByPosition(colCount,rowCount), lineRead.next());
 			colCount++;
+		}
+		if (fileName.equals("_stats")) {	
+			rowCountFinalVol = rowCount;
+			rowCountFinalVol++;
+		} else if (fileName.equals("final_CNR")) {
+			rowCountFinalQa = rowCount;
+			rowCountFinalQa++;
 		}
 		lineRead.close();
 	}
@@ -148,8 +274,7 @@ public class makeSheet {
             // get the remote office component context
             maContext = com.sun.star.comp.helper.Bootstrap.bootstrap();
             System.out.println("Connected to a running office ...");
-
-            // get the remote office service manager
+            // get the remote office service manager	
             maMCFactory = maContext.getServiceManager();
             System.out.println("Connected to a service manager ...");
         }
