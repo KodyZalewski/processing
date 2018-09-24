@@ -81,7 +81,7 @@ public class makeSheet {
 	private static String study; 
 	private static String subject;
 	private static List<String> subjectList = new ArrayList<String>();
-	//private static boolean histogram = false; 
+	private static boolean histogram = false; 
 	
 	// local non-final variables
 	private static String spreadsheetPath;
@@ -90,7 +90,7 @@ public class makeSheet {
 	
 	public static void main(String args[]) throws IOException, URISyntaxException, IndexOutOfBoundsException, BootstrapException {
 		
-		//getArgs(args);
+		getArgs(args);
 		checkArgs(args); // checks to make sure arguments and paths are valid, assigns path to spreadsheets if 
 		
 		// opens the volumetric spreadsheet and the QA processing spreadsheet if it's available
@@ -100,10 +100,10 @@ public class makeSheet {
 		}
 		
 		// loops through multiple arguments provided for subject numbers following the study at args[0]
-		//if (subjectList != null) { for (String x : subjectsList) {
-			for (int i = 1; i < args.length; i++) {
+		if (subjectList != null) { 
+			for (String x : subjectList) {
 				
-				subject = args[i];
+				subject = x;
 				
 				insertToSheet(0, volSpreadSheetDoc, subject, study, "_stats", 0);
 				insertToSheet(1, volSpreadSheetDoc, subject, study, "_thickness", 1);
@@ -117,10 +117,13 @@ public class makeSheet {
 				System.out.println( "Subject " + subject + " is located at: " + rowCountFinalQa + " row in the " + study + " processing spreadsheet.");
 				System.out.println( subject + " has been added to the spreadsheet successfully!" );
 			}
-		//} }
-		//if (histogram != false) {
-		//	histogramFile(volSpreadSheetDoc, 100, subject, study); 
-		//}	
+		}
+		else {
+			System.out.println("No subjects provided with the '-s' flag.");
+		}
+		if (histogram != false) {
+			//histogramFile(volSpreadSheetDoc, 100, subject, study); 
+		}	
 		System.exit(0);
 	}
 	
@@ -129,25 +132,31 @@ public class makeSheet {
 	// all values after "-s" are assumed to be subject numbers, alongside other arguments that can be passed to the 
 	// program for defined behavior
 	public static void getArgs(String args[]) throws IOException {
-		int counter = 1;
-		study = args[0];
 		
+		if (args.length == 0) {
+			System.err.println("ERROR: Function must have both a study and subject. Study should be first argument, subjects should come after.");
+			System.err.println("In the format: makeSheet <study> <subjectID>");
+			System.exit(1);
+		} else {
+			study = args[0];
+		}
+		
+		int counter = 1;
 		for ( String x : args ) {
 			if (x.equals("-s")) { // this means the following strings are subject numbers
 				for (int i = counter; i < args.length; i++) {
+					if (x.equals("-r")) {
+						break;
+					}
 					System.out.println("Adding the statistics for subject " + args[i]);
 					subjectList.add(args[i]);
 				}
 				break;
 			}	
-			/*if (x.equals("-r")) { //argument 1
-				System.out.println("Looking at the values for region " + args[i])
+			if (x.equals("-r")) { // TODO: check all the following strings and create histograms for those variables
+				System.out.println("Looking at the values for region " + args[counter]);
+				histogram = true; 
 			}
-			
-			if (x.equals()) { //argument 2
-				
-			}
-			*/
 			counter++;
 		}
 	}
@@ -157,13 +166,6 @@ public class makeSheet {
 	// and returns a respective int value to flag that sheet. If not, it is assumed to be the same sheet as 
 	// volumetric data. If the QA sheet is not there the program engages in unspecified behavior. 
 	public static void checkArgs(String args[]) throws IOException {
-		if (args[0] == null) {
-			System.err.println("ERROR: Function must have both a study and subject. Study should be first argument, subjects should come after.");
-			System.err.println("In the format: makeSheet <study> <subjectID>");
-			System.exit(1);
-		} else {
-			study = args[0];
-		}
 		
 		spreadsheetPath = LOCALPATH + LOCALDATA + "/" + "FS_" + study + "_volumetricdata.ods";
 		qaSheetPath = LOCALPATH + LOCALPROC + "/" + "FS_" + study + "_processingspreadsheet.ods";
@@ -175,9 +177,19 @@ public class makeSheet {
 		File checkQaFile = new File(qaSheetPath);
 		
 		if (!checkVolFile.exists()) {
-			System.err.println("ERROR: The given path for the spreadsheets is invalid.");
-			System.err.println("Make sure the study is valid and the path to the directory is present.");
-			System.exit(1);
+			System.out.println("The given path for the spreadsheets is invalid.");
+			System.out.println("Make sure the study is valid and the path to the directory is present.");
+			System.out.println("Would you like to create a new spreadsheet for this study? (Y/n): ");
+			Scanner console = new Scanner(System.in);
+			String response = console.nextLine();
+			if (response.equalsIgnoreCase("Y") || response.equalsIgnoreCase("Yes")) {
+				System.out.println("Creating a new spreadsheet for study "+study);
+				getDocument(spreadsheetPath); // TODO: make sure this works
+			} else {
+				System.out.println("Subject was not added to the spreadsheet, exiting.");	
+				System.exit(1);
+			}
+			console.close();
 		}
 		if (checkQaFile.exists()) {			
 			qaValue = 1; 

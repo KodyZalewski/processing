@@ -5,7 +5,6 @@
 study_dir=${PWD##*/}
 file_name=$study_dir"_volume_measures"
 path=/home/ns-zalewk/Desktop/memorycube/ACT_Imaging/CLINICAL
-
 for f in CLINICAL/*; do
 	
 	# get the subject name as a string from the file containing the subject data
@@ -19,6 +18,7 @@ for f in CLINICAL/*; do
 	scan_name2=$(awk '{if (NR==7) print$1}' ORS=" " ${f}/ROIStatistics_TBV_VV.txt | xargs)
 	wmhvol=$(awk '{if (NR==7) print$6}' ORS=" " ${f}/ROIStatistics_WMH.txt | xargs)
 	tbvol=$(awk '{if (NR==7) print$6}' ORS=" " ${f}/ROIStatistics_TBV_VV.txt | xargs)
+
 	vvol=$(awk '{if (NR==8) print$6}' ORS=" " ${f}/ROIStatistics_TBV_VV.txt | xargs)
 	
 	# sanity check to make sure the scans that the same scan was processed for both the
@@ -42,7 +42,6 @@ for f in CLINICAL/*; do
 			number_line=$j
 		fi;			
 	done
-	echo "$number_line"	
 
 	# if the counter is 0 that means no scan value was found, otherwise stores the values
 	# of the pixel dimensions for x, y, and z in their respective variables
@@ -51,9 +50,9 @@ for f in CLINICAL/*; do
 		echo "Scan not found for subject $current_dir"
 		echo ""
 	else
-		pxldimx=$(awk -v line=$j -F "\"*,\"*" ' { if (NR==line) { print$2 } } ' ${f}/${current_dir}_pxl_dims.csv | xargs)
-		pxldimy=$(awk -v line=$j -F "\"*,\"*" ' { if (NR==line) { print$3 } } ' ${f}/${current_dir}_pxl_dims.csv | xargs)
-		pxldimz=$(awk -v line=$j -F "\"*,\"*" ' { if (NR==line) { print$4 } } ' ${f}/${current_dir}_pxl_dims.csv | xargs)
+		pxldimx=$(awk -v line=$number_line -F "\"*,\"*" ' { if (NR==line) { print$2 } } ' ${f}/${current_dir}_pxl_dims.csv | xargs)
+		pxldimy=$(awk -v line=$number_line -F "\"*,\"*" ' { if (NR==line) { print$3 } } ' ${f}/${current_dir}_pxl_dims.csv | xargs)
+		pxldimz=$(awk -v line=$number_line -F "\"*,\"*" ' { if (NR==line) { print$4 } } ' ${f}/${current_dir}_pxl_dims.csv | xargs)
 	fi;
 
 	# echo pixel dimensions as a sanity check, if none of them are empty (they shouldn't be)
@@ -70,9 +69,8 @@ for f in CLINICAL/*; do
 		wmhvol=$(echo "scale=2; $wmhvol * $voxeldim / 1000" | bc -l )
 		tbvol=$(echo "scale=2; $tbvol * $voxeldim / 1000" | bc -l )
 		vvol=$(echo "scale=2; $vvol * $voxeldim / 1000 " | bc -l )
-		echo "$wmhvol $tbvol $vvol" && echo "" #test line
 
-		echo ${current_dir} $wmhvol $tbvol $vvol >> $file_name
+		echo "" && echo ${current_dir} $wmhvol $tbvol $vvol >> $file_name.txt
 	fi; 
 done
 
