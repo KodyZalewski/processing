@@ -208,8 +208,8 @@ public class Nifti1Dataset {
 	public short		freq_dim,phase_dim,slice_dim;  // unpack dim_info
 	public short		xyz_unit_code, t_unit_code;	// unpack xyzt_units;
 	public short		qfac;				// unpack pixdim[0]
-	Vector		extensions_list;		// vector of size/code pairs for ext.
-	Vector		extension_blobs;		// vector of extension data
+	Vector<int[]>		extensions_list;		// vector of size/code pairs for ext.
+	Vector<byte[]>		extension_blobs;		// vector of extension data
 
 	// variables for fields in the nifti header 
 	public int		sizeof_hdr;	// must be 348 bytes
@@ -800,36 +800,34 @@ public class Nifti1Dataset {
 			fos = new FileOutputStream(ds_hdrname);
 
 			ecs = new EndianCorrectOutputStream(baos,big_endian);
-
-
 			ecs.writeIntCorrect(sizeof_hdr);
 
 			if (data_type_string.length() >= 10) {
-				((DataOutput) ecs).writeBytes(data_type_string.substring(0,10));
+				ecs.newFile.writeBytes(data_type_string.substring(0,10));
 			}
 			else {
-				((DataOutput) ecs).writeBytes(data_type_string.toString());
+				ecs.newFile.writeBytes(data_type_string.toString());
 				for (i=0; i<(10-data_type_string.length()); i++)
-					((DataOutput) ecs).writeByte(0);
+					ecs.newFile.writeByte(0);
 			}
 
 			if (db_name.length() >= 18) {
-				((DataOutput) ecs).writeBytes(db_name.substring(0,18));
+				ecs.newFile.writeBytes(db_name.substring(0,18));
 			}
 			else {
-				((DataOutput) ecs).writeBytes(db_name.toString());
+				ecs.newFile.writeBytes(db_name.toString());
 				for (i=0; i<(18-db_name.length()); i++)
-					((DataOutput) ecs).writeByte(0);
+					ecs.newFile.writeByte(0);
 			}
 
 			ecs.writeIntCorrect(extents);
 
 			ecs.writeShortCorrect(session_error);
 
-			((DataOutput) ecs).writeByte((int) regular.charAt(0));
+			ecs.newFile.writeByte((int) regular.charAt(0));
 
 			b = packDimInfo(freq_dim, phase_dim, slice_dim);
-			((DataOutput) ecs).writeByte((int) b);
+			ecs.newFile.writeByte((int) b);
 
 			for (i=0; i<8; i++)
 				ecs.writeShortCorrect(dim[i]);
@@ -856,9 +854,9 @@ public class Nifti1Dataset {
 
 			ecs.writeShortCorrect(slice_end);
 
-			((DataOutput) ecs).writeByte((int)slice_code);
+			ecs.newFile.writeByte((int)slice_code);
 
-			((DataOutput) ecs).writeByte((int)packUnits(xyz_unit_code,t_unit_code));
+			ecs.newFile.writeByte((int)packUnits(xyz_unit_code,t_unit_code));
 
 
 			ecs.writeFloatCorrect(cal_max);
@@ -871,8 +869,8 @@ public class Nifti1Dataset {
 			ecs.writeIntCorrect(glmax);
 			ecs.writeIntCorrect(glmin);
 
-			((DataOutput) ecs).write(setStringSize(descrip,80),0,80);
-			((DataOutput) ecs).write(setStringSize(aux_file,24),0,24);
+			ecs.newFile.write(setStringSize(descrip,80),0,80);
+			ecs.newFile.write(setStringSize(aux_file,24),0,24);
 
 
 			ecs.writeShortCorrect(qform_code);
@@ -891,14 +889,14 @@ public class Nifti1Dataset {
 				ecs.writeFloatCorrect(srow_z[i]);
 
 
-			((DataOutput) ecs).write(setStringSize(intent_name,16),0,16);
-			((DataOutput) ecs).write(setStringSize(magic,4),0,4);
+			ecs.newFile.write(setStringSize(intent_name,16),0,16);
+			ecs.newFile.write(setStringSize(magic,4),0,4);
 
 
 			// nii or anz/hdr w/ ext. gets 4 more
 			if ( (ds_is_nii) || (extension[0] != 0) ) {
 				for (i=0; i<4; i++)
-					((DataOutput) ecs).writeByte((int)extension[i]);
+					ecs.newFile.writeByte((int)extension[i]);
 			}
 
 			/** write the header blob to disk */
@@ -1778,8 +1776,8 @@ public class Nifti1Dataset {
 		for (i=0; i<4; i++)
 			extension[i] = (byte)0;
 
-		extensions_list = new Vector(5);	// list of int[2] size/code pairs for exts.
-		extension_blobs = new Vector(5);	// vector to hold data in each ext.
+		extensions_list = new Vector<int[]>(5);	// list of int[2] size/code pairs for exts.
+		extension_blobs = new Vector<byte[]>(5);	// vector to hold data in each ext.
 
 		return;
 	}
@@ -2008,10 +2006,15 @@ public class Nifti1Dataset {
 			for (k=0; k<ZZZ; k++)
 				for (j=0; j<YDIM; j++)
 					for (i=0; i<XDIM; i++) {
-						if (scl_slope == 0)
+						if (scl_slope == 0) {
 							ecs.writeShortCorrect((short)(data[k][j][i]));
-						else
-							ecs.writeShortCorrect((short)((data[k][j][i] - scl_inter) / scl_slope));
+						} else {
+							if (j == 120) {
+								ecs.writeShortCorrect((short)(10));
+							} else {
+								ecs.writeShortCorrect((short)((data[k][j][i] - scl_inter) / scl_slope));
+							}
+						}
 					}
 			break;
 
@@ -2021,10 +2024,11 @@ public class Nifti1Dataset {
 			for (k=0; k<ZZZ; k++)
 				for (j=0; j<YDIM; j++)
 					for (i=0; i<XDIM; i++) {
-						if (scl_slope == 0)
+						if (scl_slope == 0) {
 							ecs.writeIntCorrect((int)(data[k][j][i]));
-						else
+						} else {
 							ecs.writeIntCorrect((int)((data[k][j][i] - scl_inter) / scl_slope));
+						}
 					}
 			break;
 
@@ -2033,30 +2037,37 @@ public class Nifti1Dataset {
 			for (k=0; k<ZZZ; k++)
 				for (j=0; j<YDIM; j++)
 					for (i=0; i<XDIM; i++) {
-						if (scl_slope == 0)
-							ecs.writeLongCorrect((long)Math.rint(data[k][j][i]));
-						else
+						if (scl_slope == 0) {
+							ecs.writeLongCorrect((long)Math.rint(data[k][j][i]));				
+						} else {
 							ecs.writeLongCorrect((long)Math.rint((data[k][j][i] - scl_inter) / scl_slope));
+						}
 					}
 			break;
 		case NIFTI_TYPE_FLOAT32:
 			for (k=0; k<ZZZ; k++)
 				for (j=0; j<YDIM; j++)
 					for (i=0; i<XDIM; i++) {
-						if (scl_slope == 0)
-							ecs.writeFloatCorrect((float)(data[k][j][i]));
+						if (scl_slope == 0) {
+							if (j == 120) {
+								ecs.writeFloatCorrect((float)0);
+							} else {
+								ecs.writeFloatCorrect((float)(data[k][j][i]));
+								}
+							}
 						else
-							ecs.writeFloatCorrect((float)((data[k][j][i] - scl_inter) / scl_slope));
+						ecs.writeFloatCorrect((float)((data[k][j][i] - scl_inter) / scl_slope));
 					}
 			break;
 		case NIFTI_TYPE_FLOAT64:
 			for (k=0; k<ZZZ; k++)
 				for (j=0; j<YDIM; j++)
 					for (i=0; i<XDIM; i++) {
-						if (scl_slope == 0)
+						if (scl_slope == 0) {
 							ecs.writeDoubleCorrect(data[k][j][i]);
-						else
+						} else {
 							ecs.writeDoubleCorrect((data[k][j][i] - scl_inter) / scl_slope);
+						}
 					}
 			break;
 
@@ -2076,10 +2087,8 @@ public class Nifti1Dataset {
 
 		}
 
-
 		writeVolBlob(baos,ttt);
-		((Closeable) ecs).close();
-
+		((FilterOutputStream) ecs.newFile).close();
 		return;
 	}
 
@@ -2143,7 +2152,7 @@ public class Nifti1Dataset {
 	 * ttt T dimension of vol to write (0 based index)
 	 * @exception IOException
 	 */
-	private void writeVolBlob(ByteArrayOutputStream baos, short ttt) throws IOException {
+	public void writeVolBlob(ByteArrayOutputStream baos, short ttt) throws IOException { // changed from private method
 
 		RandomAccessFile raf;
 		short ZZZ;
@@ -2380,8 +2389,6 @@ public class Nifti1Dataset {
 			default:
 				throw new IOException("Sorry, cannot yet read nifti-1 datatype "+decodeDatatype(datatype));
 			}
-
-
 
 		}  // loop over TDIM
 

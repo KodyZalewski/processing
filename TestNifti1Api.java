@@ -49,9 +49,12 @@ public static void main(String[] args) {
 		}
 		Nifti1Dataset nds = new Nifti1Dataset(args[1]);
 		try {
-			nds.readHeader();
+			nds.readHeader();	
 			data = nds.readDoubleVol(Short.parseShort(args[5]));
+			nds.writeVol(data,(short)0); // for testing writing to scan
 			System.out.println("\n\nPeek "+args[2]+" "+args[3]+" "+args[4]+" "+args[5]+": "+data[Short.parseShort(args[4])][Short.parseShort(args[3])][Short.parseShort(args[2])]);
+			b = nds.readData(); //
+			nds.writeData(b); //
 		}
 		catch (IOException ex) {
 			System.out.println("\nCould not read volume from "+args[1]+": "+ex.getMessage());

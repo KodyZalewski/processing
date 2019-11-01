@@ -6,47 +6,36 @@ public class readNifti {
 	
 	public static double data[][][]; // data for storing the information from the nifti scan
 	public static double rows[][][]; // 3D matrix stores the moving average for each voxel
-	public static double avgVals_1[][]; // 2D matrix for storing the moving average on the left half of the scan for each row
-	public static double avgVals_2[][]; // 2D matrix for storing the moving average on the right half of the scan for each row
-	public static String LOCALPATH = "/home/ns-zalewk/workspace/ExvivoNifti/src/"; //default, change at some point
-	public static String SCANNAME = "";
+	public static double avgVals_lh[][]; // 2D matrix for storing the moving average on the left half of the scan for each row
+	public static double avgVals_rh[][]; // 2D matrix for storing the moving average on the right half of the scan for each row
 	public static ArrayList<Double> slope = new ArrayList<Double>();
 	public static Map<Integer,Double> boundMapLh = new HashMap<Integer,Double>(); // marks the location of the 
 	public static Map<Integer,Double> boundMapRh = new HashMap<Integer,Double>();
-	//public static Map<Integer, Double> priorMap = new HashMap<Integer, Double>(); will use later for estimating prior distances
+	//public static Map<Integer, Double> priorMap = new HashMap<Integer, Double>(); will use later for estimating prior distances between edges of the scan the brain itself
 	
-	public static void main(String args[]) throws IOException {
-		
-		checkArgs(args);
-		
-		Nifti1Dataset inputNifti = new Nifti1Dataset(LOCALPATH + args[0]);
+	public static void readNiftiFinder(Nifti1Dataset inputNifti) throws IOException {
 		
 		inputNifti.readHeader();
-		
-		data = inputNifti.readDoubleVol(Short.parseShort(args[4])); // timecourse
 		
 		double[][][] rows = new double[inputNifti.XDIM-1][inputNifti.YDIM-1][inputNifti.ZDIM-1];
 		
 		calcAverages(inputNifti);
 		
-		avgVals_1 = findMaxAvg(rows, inputNifti, "left");
-		avgVals_2 = findMaxAvg(rows, inputNifti, "right");
+		// if (lh) {
+		avgVals_lh = findMaxAvg(rows, inputNifti, "left");
+		// }
+		// if (rh) {
+		avgVals_rh = findMaxAvg(rows, inputNifti, "right");
+		// }
+		// if (whole brain) {
+		// combine matrices into one data set
+		// }
+	
+		// findLinearEq();
 		
-		// simply for testing
-		int x = 0;
-		while (x < avgVals_1.length) {
-			System.out.println(avgVals_1[x][0]);
-			x++;
-		}
-		
-		// writeToScan();
-		// findLinearEqu();
-		
-		System.out.println("Exiting...");
+		System.out.println("Finished reading data, exiting...");
 		System.exit(0);
 	}
-	
-	// TODO: Organize it a bit better? 
 	
 	// calcAverages() takes a nifti data set + dimensions find the moving averages across the entire scan 
 	// for the X-dimension and record them in a 3D matrix,  also rounds them to the nearest value. 
@@ -67,16 +56,29 @@ public class readNifti {
 		}	
 	}
 	
+	public static Map<Integer, Double> markCoordinates(double[][][] data) {
+		
+		Map<Integer,Double> boundMap = new HashMap<Integer,Double>();
+		
+		return boundMap;
+	}
+	
 	// TODO: Find the linear increase in the gradient and compare the moving average to it. This way we aren't looking
 	// at changes to the moving average internal to the brain.
 	// TODO: Add a private method to return the matrix instead of a public method.
 	
 	// findMaxAvg() takes the 3D matrix of rows, a 2D matrix of moving average values for each row on the 3D matrix, and
-	// a boundary for which half of the scan should be processed. The l
+	// a boundary for which half of the scan should be processed. 
+	
 	
 	public static double[][] findMaxAvg(double[][][] rows, Nifti1Dataset inputNifti, String half) {
+		
 		double[][] avgVals = new double[rows[0].length][rows[0][0].length];
-		int a = 0; int b = 0; int c = 0; double max = 0;
+		
+		//double[][] coordinates = new double[][]; 
+				
+		int a = 0, b = 0, c = 0; double max = 0;
+		
 		while (a < rows[0].length) {
 			while (b < rows[0][0].length) {
 				if (half.equals("left")) {
@@ -104,37 +106,13 @@ public class readNifti {
 		return avgVals;
 	}
 	
-	// TODO: Is time-course necessary for opening nifti scan? 
-	
-	// checkArgs() takes arguments give to the program as a string and allows for client input when no arguments are specified 
-	// for the program otherwise uses given nifti file name and path for processing. Exits program if nothing is specified.
-	
-	public static void checkArgs(String[] args) {
-		if (args.length < 1) {
-			Scanner console = new Scanner(System.in);
-			System.out.println("Would you like to input a new scan/path to denote for processing? (yes/no) : ");
-			String response = console.nextLine().toLowerCase();
-			
-			if ( response.startsWith("y") || response.contains("yes") ) {
-			
-				System.out.println("Input path here: ");
-				LOCALPATH = console.nextLine();
-				
-				System.out.println("Input name of the scan here: ");
-				SCANNAME = console.nextLine();
-				
-				console.close();
-				return;
-			} else {
-				console.close();
-				System.out.println("Exiting without arguments.");
-				System.exit(0);
+	/**public static double[][][] traverseMatrix(double[][][] mriData) {
+		for () {
+			for () {
+				for () {
+					// do something
+				}
 			}
-		} else {
-			
-			System.out.println("Using " + LOCALPATH + " as path.");
-			System.out.println("Using " + args[0] + " as scan.");
-			return;
 		}
-	}
+	}**/
 }

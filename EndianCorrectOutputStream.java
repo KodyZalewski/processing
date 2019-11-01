@@ -1,5 +1,5 @@
 import java.io.*;
-//import java.util.zip.*;
+import java.util.zip.*;
 
 /**
  *  EndianCorrectOutputStream extends DataOutputStream; it will optionally flip
@@ -8,7 +8,8 @@ import java.io.*;
 
 public class EndianCorrectOutputStream {
 	
-	public static DataOutput newFile;
+	//public FileOutputStream finalOutput;
+	public DataOutput newFile;
 	private boolean bigendian = true;
 
 	/**
@@ -19,7 +20,7 @@ public class EndianCorrectOutputStream {
 	 */
 	public EndianCorrectOutputStream(String filename, boolean be) throws FileNotFoundException, SecurityException {
 		
-		//FileOutputStream newFile = new FileOutputStream(filename);
+		FileOutputStream newFile = new FileOutputStream(filename);
 		bigendian = be;
 		
 	}
@@ -32,6 +33,7 @@ public class EndianCorrectOutputStream {
 	 */
 	public EndianCorrectOutputStream(OutputStream os, boolean be)  {
 		super();
+		this.newFile = new DataOutputStream(os);
 		bigendian = be;
 	}
 
@@ -69,7 +71,7 @@ public class EndianCorrectOutputStream {
 	 *  writeIntCorrect will write an int to the stream
 	 */
 	public void writeIntCorrect(int val) throws IOException {
-
+		
 		if (bigendian){
 			newFile.writeInt(val);
 		}
