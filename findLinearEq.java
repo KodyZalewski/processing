@@ -20,4 +20,5 @@ public class findLinearEq {
 		}
 		return slopes; 
 	}
+	
 }

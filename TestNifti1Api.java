@@ -51,10 +51,10 @@ public static void main(String[] args) {
 		try {
 			nds.readHeader();	
 			data = nds.readDoubleVol(Short.parseShort(args[5]));
-			nds.writeVol(data,(short)0); // for testing writing to scan
+			// nds.writeVol(data,(short)0); // for testing writing to scan
 			System.out.println("\n\nPeek "+args[2]+" "+args[3]+" "+args[4]+" "+args[5]+": "+data[Short.parseShort(args[4])][Short.parseShort(args[3])][Short.parseShort(args[2])]);
-			b = nds.readData(); //
-			nds.writeData(b); //
+			// b = nds.readData(); //
+			// nds.writeData(b); //
 		}
 		catch (IOException ex) {
 			System.out.println("\nCould not read volume from "+args[1]+": "+ex.getMessage());
@@ -62,8 +62,7 @@ public static void main(String[] args) {
 
 		return;
 	}
-
-
+	
 	/// read and print a timecourse at loc XYZ
 	if (args[0].equals("timecourse")) {
 		if (args.length != 5) {

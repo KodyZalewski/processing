@@ -777,6 +777,7 @@ public class Nifti1Dataset {
 	 * @exception IOException 
 	 * @exception FileNotFoundException
 	 */
+	@SuppressWarnings("unused")
 	public void writeHeader() throws IOException, FileNotFoundException {
 
 		EndianCorrectOutputStream ecs;
@@ -1235,7 +1236,9 @@ public class Nifti1Dataset {
 	 * maybe add auto set of dat name to hdr name, strip img/hdr ??
 	 */
 	private void setToNi1() {
+		@SuppressWarnings("unused")
 		int n;
+		@SuppressWarnings("unused")
 		int extlist[][];
 
 		ds_is_nii = false;
@@ -1955,6 +1958,7 @@ public class Nifti1Dataset {
 		case NIFTI_TYPE_COMPLEX256:
 		case DT_ALL:
 		default:
+			ecs.close();
 			throw new IOException("Sorry, cannot yet read nifti-1 datatype "+decodeDatatype(datatype));
 		}
 
@@ -2009,11 +2013,11 @@ public class Nifti1Dataset {
 						if (scl_slope == 0) {
 							ecs.writeShortCorrect((short)(data[k][j][i]));
 						} else {
-							if (j == 120) {
-								ecs.writeShortCorrect((short)(10));
-							} else {
+							//if (j == 120) {
+							//	ecs.writeShortCorrect((short)(10));
+							//} else {
 								ecs.writeShortCorrect((short)((data[k][j][i] - scl_inter) / scl_slope));
-							}
+							//}
 						}
 					}
 			break;
@@ -2104,6 +2108,7 @@ public class Nifti1Dataset {
 
 		byte b[];
 		RandomAccessFile raf;
+		@SuppressWarnings("unused")
 		GZIPInputStream gis;
 		BufferedInputStream bis;
 		short ZZZ;
@@ -2200,6 +2205,7 @@ public class Nifti1Dataset {
 
 		int i;
 		byte b[];
+		@SuppressWarnings("unused")
 		GZIPInputStream gis;
 		DataInputStream dis;
 		long skip_head,blob_size;
@@ -2282,6 +2288,7 @@ public class Nifti1Dataset {
 	 */
 	public double[] readDoubleTmcrs(short x, short y, short z) throws IOException {
 
+		@SuppressWarnings("unused")
 		GZIPInputStream gis;
 		EndianCorrectInputStream ecs;
 		short ZZZ,i;

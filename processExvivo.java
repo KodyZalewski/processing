@@ -1,6 +1,9 @@
 
 import java.io.*;
 import java.util.*;
+//import java.util.zip.*;
+//import java.util.zip.GZIPInputStream;
+//import java.util.zip.GZIPOutputStream;
 
 /**
  * @author Kody Zalewski 11.1.2019
@@ -35,36 +38,53 @@ public class processExvivo {
 	public static String LOCALPATH = "/home/ns-zalewk/workspace/ExvivoNifti/src/"; //default, change at some point
 	public static String SCANNAME = "";
 	public static double data[][][];
-	public static Map<Integer,Double> boundMap;
+	public static int[][] dimBounds;
 	
 	public static void main(String args[]) throws IOException {
 		
-		inputFile = args[1];		
-		outputFile = args[2];
+		inputFile = args[0];
+		outputFile = args[1];
 
 		checkArgs(args);
-			
-		Nifti1Dataset inputFile = new Nifti1Dataset(LOCALPATH + args[0]);
 		
-		if (inputFile.exists()) {
+		/**TODO: Is time-course *always* necessary for opening nifti scan?
+		// data = inputNifti.readDoubleVol(Short.parseShort(args[4])); // timecourse // 
+		
+		// TODO: read and look for the nifti file, if it's in .gz compressed format, gunzip it, if gunzip isn't installed,
+		prompt the client to download it
+		if () {
+			GZIPInputStream unzipFile = new GZIPInputStream();
+		}
+		**/
+		
+		Nifti1Dataset inputNifti = new Nifti1Dataset(LOCALPATH + args[0]);
+		
+		inputNifti.readHeader();
+		
+		data = readNifti.dataParse(inputNifti, 0);
+		
+		if (inputNifti.exists()) {
 			System.out.println("Nifti file has readable header and data.");
 		} else {
 			System.out.println("Nifti file does not have usable header or data.");
 			System.exit(1);
-		}		
+		}
 		
-		// TODO: Is time-course *always* necessary for opening nifti scan?
-		// data = inputNifti.readDoubleVol(Short.parseShort(args[4])); // timecourse // 
+		dimBounds = readNifti.readNiftiFinder(inputNifti, data);
 		
-		// TODO: read and look for the nifti file, if it's in .gz compressed format, gunzip it, if gunzip isn't installed,
-		// prompt the client to download it
+		//writeNifti.writeNiftiOutput(inputNifti, outputFile, data, dimBounds);
 		
-		readNifti.readNiftiFinder(inputFile);
-		boundMap = readNifti.markCoordinates(data); 
-		// assign boundMap markings to the data set
-		data = writeNifti.zeroOutVoxels(data);
+		// need to redirect output to LOCALPATH
+		Nifti1Dataset outputNifti = new Nifti1Dataset(outputFile);
 		
-		writeNifti.writeNiftiOutput(inputFile, outputFile, data);
+		outputNifti.readHeader();
+		
+		if (outputNifti.exists()) {
+			System.out.print("File sucessfully written.");
+		} else {
+			System.out.print("File hasn't been written to the folder successfully, exiting...");
+		}
+	
 		System.exit(0);
 	}
 		
@@ -74,6 +94,7 @@ public class processExvivo {
 	 */
 	public static void checkArgs(String[] args) {
 		if (args.length < 1) {
+			
 			Scanner console = new Scanner(System.in);
 			System.out.println("Would you like to input a new scan/path to denote for processing? (yes/no) : ");
 			String response = console.nextLine().toLowerCase();
@@ -102,7 +123,7 @@ public class processExvivo {
 		} else {
 
 			System.out.println("Using " + LOCALPATH + " as path.");
-			System.out.println("Using " + args[0] + " as scan.");
+			System.out.println("Using " + args[0] + " as input scan.");
 			return;
 		}
 	}	
