@@ -14,7 +14,7 @@ public class readNifti {
 		int x = inputNifti.XDIM; int y = inputNifti.YDIM; int z = inputNifti.ZDIM; // scan dimensions need to match, can adjust in future
 		
 		double[][][] movingAvg = calcAvgThreeDim(data, 1, x, y, z);
-		double [][] avgGrid = calcAvgTwoDim(movingAvg, x, y, z);
+		double [][] avgGrid = findAvg(movingAvg, 7, 15, x, y, z);
 		double[][] stDevGrid = calcStDev(data, avgGrid, x, y, z);
 		int[][] dimBound = calcBoundary(movingAvg, stDevGrid, x, y, z);
 		
@@ -87,37 +87,36 @@ public class readNifti {
 				}
 			}
 			if (sliceAvg[i] != 0 && lengthCounter != 0) {
-				sliceAvg[i] = sliceAvg[i]/lengthCounter;
+				sliceAvg[i] = sliceAvg[i]/(double)lengthCounter;
 			} else {
 				sliceAvg[i] = 0;
 			}
 		}
+		for (double x : sliceAvg) {
+			System.out.println(x);
+		}
+				
 		return sliceAvg;
 	}
 	
-	public static double[][] calcAvgTwoDim(double[][][] movingAvg, int dim_1, int dim_2, int dim_3) {
+	public static double[][] findAvg(double[][][] data1, int findGradient, int threshold, int dim_1, int dim_2, int dim_3) {
 		
-		double[][] avgGrid = new double[dim_3][dim_2];
-		int lengthCounter = 0; //only counting non-zero voxels	
+		double[][] storeAvg = new double[dim_3][dim_2];
 		
-		for (int i = 0; i < dim_3; i++) { 
-			for (int j = 0; j < dim_2; j++) { 
-				for (int k = 0; k < dim_1 - 1; k++) {
-					if (movingAvg[i][j][k] != 0) { // allow the option for zero-voxels to be counted at some point
-						lengthCounter++;
+		for (int i = 0; i < dim_3; i++) {
+			for (int j = 0; j < dim_2; j++) {
+				for (int k = 0; k < dim_1; k++) {
+					if (data1[i][j][k] > (double) threshold) {
+						for (int l = 0; l < findGradient; l++) {
+							storeAvg[i][j] += data1[i][j][k + l];
+						}
+						break;
 					}
-					avgGrid[i][j] += movingAvg[i][j][k];
 				}
-				if (avgGrid[i][j] != 0 && lengthCounter != 0) {
-					avgGrid[i][j] = avgGrid[i][j]/lengthCounter;			
-				} else {
-					avgGrid[i][j] = 0;
-				}
-				lengthCounter = 0;
+				storeAvg[i][j] = storeAvg[i][j]/(double)findGradient;
 			}
-			calcAvgOneDim(avgGrid, dim_3, dim_2);
 		}
-		return avgGrid;
+		return storeAvg;
 	}
 	
 	// TODO: Incorporate the width of the moving average into the calculation and allow adjustments

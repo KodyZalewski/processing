@@ -21,7 +21,7 @@ public class writeNifti {
 
 	public static int x,y,z,i,j,k; //nifti dimension counters
 	
-	public static void writeNiftiOutput(Nifti1Dataset ntf, String outputFile, double[][][] data, int[][] dimBound) throws IOException {
+	public static void writeNiftiOutput(Nifti1Dataset ntf, String outputFile, double[][][] data) throws IOException {
 		writeNiftiHelper(ntf, outputFile, data);
 		//writeNiftiHelper(ntf, outputFile, zeroOutVoxels(data, dimBound));
 	}
@@ -36,19 +36,20 @@ public class writeNifti {
 		blob_size = ntf.XDIM * ntf.YDIM * ntf.ZDIM * ntf.bytesPerVoxel(ntf.datatype); // would need to potentially adjust 
 		baos = new ByteArrayOutputStream(blob_size);	
 		//ecs = new EndianCorrectOutputStream(new ByteArrayOutputStream(HEADER), false); // byte size and big or little endian
-		ecs = new EndianCorrectOutputStream(baos, false);
+		ecs = new EndianCorrectOutputStream(baos, ntf.big_endian);
 		
 		for (x = 0; x < ntf.ZDIM; x++) {
 			for (y = 0; y < ntf.YDIM; y++) {
-				for (z = 0; z < ntf.XDIM - 1; z++) {  // 1 is only for testing
-					ecs.writeFloatCorrect((float)(data[x][y][z] - ntf.scl_inter) / ntf.scl_slope); 
+				for (z = 0; z < ntf.XDIM; z++) {  // 1 is only for testing
+					if (ntf.scl_slope == 0) {
+						ecs.writeFloatCorrect((float)(data[x][y][z])); 
+					} else {
+						ecs.writeFloatCorrect((float)(data[x][y][z] - ntf.scl_inter) / ntf.scl_slope); 
+					}
 				}
 			}
-		}	
-		
-		
-		// testing statement
-		int counter = 0;
+		}		
+		/** testing statement 
 		double sum = 0.0;
 		for (x = 0; x < ntf.ZDIM; x++) {
 			for (y = 0; y < ntf.YDIM; y++) {
@@ -61,15 +62,15 @@ public class writeNifti {
 			}
 		}
 		System.out.println(counter);
-		System.out.println(sum/counter);//
+		System.out.println(sum/counter);*/
 		
 		ntf.readHeader();
 		ntf.setHeaderFilename(outputFile);
 		ntf.setDataFilename(outputFile);
 		ntf.writeHeader();
 		
-		// write output file here
-		ntf.writeVolBlob(baos,(short)1); // 
+		// write output file here	
+		ntf.writeVolBlob(baos,(short)1); 
 		((FilterOutputStream) ecs.newFile).close();
 		
 		System.out.println("Finished writing data.");

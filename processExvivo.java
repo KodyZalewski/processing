@@ -35,7 +35,8 @@ import java.util.*;
 public class processExvivo {
 	
 	public static String inputFile, outputFile;
-	public static String LOCALPATH = "/home/ns-zalewk/workspace/ExvivoNifti/src/"; //default, change at some point
+	public static String LOCALPATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1260/TX1260_FREESURFER/mri/orig/";
+	public static String OUTPUT_PATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1260/TX1260_FREESURFER/mri/orig/";
 	public static String SCANNAME = "";
 	public static double data[][][];
 	public static int[][] dimBounds;
@@ -57,7 +58,8 @@ public class processExvivo {
 		}
 		**/
 		
-		Nifti1Dataset inputNifti = new Nifti1Dataset(LOCALPATH + args[0]);
+		Nifti1Dataset inputNifti = new Nifti1Dataset(args[0]);
+		//Nifti1Dataset inputNifti = new Nifti1Dataset(LOCALPATH + args[0]);
 		
 		inputNifti.readHeader();
 		
@@ -70,9 +72,15 @@ public class processExvivo {
 			System.exit(1);
 		}
 		
-		dimBounds = readNifti.readNiftiFinder(inputNifti, data);
+		data = smoothVolume.erode(data, 5, 1, true, true, true);
 		
-		//writeNifti.writeNiftiOutput(inputNifti, outputFile, data, dimBounds);
+		//data = smoothVolume.writeLines(data, 20);
+		
+		//dimBounds = readNifti.readNiftiFinder(inputNifti, data);
+		
+		//outputFile = OUTPUT_PATH + outputFile;
+		
+		writeNifti.writeNiftiOutput(inputNifti, outputFile, data);
 		
 		// need to redirect output to LOCALPATH
 		Nifti1Dataset outputNifti = new Nifti1Dataset(outputFile);

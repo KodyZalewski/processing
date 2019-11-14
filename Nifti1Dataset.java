@@ -1926,14 +1926,14 @@ public class Nifti1Dataset {
 					}
 			break;
 
-
+		// our nifti scans for EXVIVO use this format	
 		case NIFTI_TYPE_FLOAT32:
 			for (k=0; k<ZZZ; k++)
 				for (j=0; j<YDIM; j++)
 					for (i=0; i<XDIM; i++) {
 						data[k][j][i] = (double) (ecs.readFloatCorrect());
 						if (scl_slope != 0)
-							data[k][j][i] = data[k][j][i] * scl_slope + scl_inter;
+								data[k][j][i] = data[k][j][i] * scl_slope + scl_inter;
 					}
 			break;
 
@@ -2052,13 +2052,9 @@ public class Nifti1Dataset {
 			for (k=0; k<ZZZ; k++)
 				for (j=0; j<YDIM; j++)
 					for (i=0; i<XDIM; i++) {
-						if (scl_slope == 0) {
-							if (j == 120) {
-								ecs.writeFloatCorrect((float)0);
-							} else {
-								ecs.writeFloatCorrect((float)(data[k][j][i]));
-								}
-							}
+						if (scl_slope == 0) {	
+							ecs.writeFloatCorrect((float)(data[k][j][i]));					
+						}
 						else
 						ecs.writeFloatCorrect((float)((data[k][j][i] - scl_inter) / scl_slope));
 					}
