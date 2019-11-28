@@ -4,8 +4,8 @@ public class smoothVolume {
 	
 	static double data[][][];
 	static double data1[][][];
-	public static String LOCALPATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1263/TX1263_FREESURFER/mri/orig/";
-	public static String OUTPUT_PATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1263/TX1263_FREESURFER/mri/orig/";
+	public static String LOCALPATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1270/TX1270_FREESURFER/mri/orig/";
+	public static String OUTPUT_PATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1270/TX1270_FREESURFER/mri/orig/";
 	static boolean boundaries[][][];
 	
 	// nifti can't be in double format, this sucks! Change writeVolBlob someday
@@ -40,8 +40,9 @@ public class smoothVolume {
 			//smoothNifti.writeVol(smoothed,(short)0);
 				
 			// testing below here
-			smoothNifti.writeVol(erode(nds.readDoubleVol((short) 0), 30,15, false, true, true),(short)0);
-			smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
+			//smoothNifti.writeVol(erode(nds.readDoubleVol((short) 0), 30,10.5, true, false, false),(short)0);
+			//smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
+			findLinearEq.findLinearEquations(data, 3, true, true, true);
 			
 			//data1 = smoothNifti.readDoubleVol((short) 0);	
 			
@@ -268,205 +269,4 @@ public class smoothVolume {
 			}			
 			return data1;
 		}
-	
-	/** 
-	// rewrite this more elegantly at some point, trying thirds, maybe go back to halves
-	public static double[][][] erode2(double[][][] data1, int erodeVal, double lowerBound, boolean xdim, boolean ydim, boolean zdim) {
-		
-		// x dimension
-		if (xdim == true) {
-			for (int i = 0; i < data1.length; i++) {
-				for (int j = 0; j < data1[i].length; j++) {
-					for (int k = 0; k < data1[i][j].length/2; k++) {
-						if (data1[i][j][k] > (double) lowerBound && boundaries[i][j][k] == false) {
-							for (int l = 0; l < erodeVal; l++) {
-								if (data1[i][j][k+l] > (double) lowerBound) {
-									data1[i][j][k+l] = (double) 0;
-								} else {
-									break;
-								}
-							}
-							break;
-						} else {
-							if (data1[i][j][k] != (double) 0) {
-								boundaries[i][j][k+1] = true;
-							}
-						}
-					}
-					for (int k = data1[i][j].length - 1; k > data1[i][j].length/2; k--) {
-						if (data1[i][j][k] > (double) lowerBound && boundaries[i][j][k] == false) {
-							for (int l = 0; l < erodeVal; l++) {
-								if (data1[i][j][k-l] > (double) lowerBound) {
-									data1[i][j][k-l] = (double) 0;
-								} else {
-									break;
-								}
-							}
-							break;
-						} else {
-							if (data1[i][j][k] != (double) 0) {
-								boundaries[i][j][k-1] = true;
-							}
-						}
-					}
-				}
-			}
-		}
-		
-		if (ydim == true) {
-			// y dimension
-			for (int k = 0; k < data1.length/2; k++) {
-				for (int i = 0; i < data1[k].length; i++) {
-					for (int j = 0; j < data1[k][i].length; j++) {
-						if (data1[k][i][j] > (double) lowerBound && boundaries[k][i][j] == false) {
-							for (int l = 0; l < erodeVal; l++) {
-								if (data1[k+l][i][j] > (double) lowerBound) {
-									data1[k+l][i][j] = (double) 0;
-								} else {
-									break;
-								}
-							}
-							break;
-						} else {
-							if (data1[k][i][j] != (double) 0) {
-								boundaries[k+1][i][j] = true;
-							}
-						}
-					}
-				}
-			}
-			for (int k = data1.length - 1; k > data1.length/2; k--) {
-				for (int i = 0; i < data1[k].length; i++) {
-					for (int j = 0; j < data1[k][i].length; j++) {
-						if (data1[k][i][j] > (double) lowerBound && boundaries[k][i][j] == false) {
-							for (int l = 0; l < erodeVal; l++) {
-								if (data1[k-l][i][j] > (double) lowerBound) {
-									data1[k-l][i][j] = (double) 0;
-								} else {
-									break;
-								}
-							}
-							break;
-						} else {
-							if (data1[k][i][j] != (double) 0) {
-								boundaries[k-1][i][j] = true;
-							}
-						}
-					}
-				}
-			}
-		}
-		
-		if (zdim == true) {
-			// z dimension
-			for (int i = 0; i < data1.length; i++) {
-				for (int k = 0; k < data1[i].length/2; k++) {
-					for (int j = 0; j < data1[i][k].length; j++) {
-						if (data1[i][k][j] > (double) lowerBound && boundaries[i][k][j] == false) {
-							for (int l = 0; l < erodeVal; l++) {
-								if (data1[i][k+l][j] > lowerBound) {
-									data1[i][k+l][j] = (double) 0;
-								} else {
-									break;
-								}
-							}
-							break;
-						} else {
-							if (data1[i][k][j] != (double) 0) {
-								boundaries[i][k+1][j] = true;
-							}
-						}
-					}
-				}
-				for (int k = data1[i].length - 1; k > data1[i].length/2; k--) {
-					for (int j = 0; j < data1[i][k].length; j++) {
-						if (data1[i][k][j] > (double) lowerBound && boundaries[i][k][j] == false) {
-							for (int l = 0; l < erodeVal; l++) {
-								if (data1[i][k-l][j] > lowerBound) {
-									data1[i][k-l][j] = (double) 0;
-								} else {
-									break;
-								}
-							}
-							break;
-						} else {
-							if (data1[i][k][j] != (double) 0) {
-								boundaries[i][k-1][j] = true;
-							}
-						}
-					}
-				}
-			}
-		}
-		return data1;
-	}*/	
-	
-	/**public static void erodeHelper(double[][][] data, int dim1, int dim2, int dim3) {
-		
-		for (int i = 0; i < dim1; i++) {
-			for (int j = 0; j < dim2; j++) {
-				for (int k = 0; k < data1[k].length - 1; k++) {
-					if () {
-						
-					}
-				}
-				for (int k = data1[0].length - 1; k > erodeVal; k--) {
-					if () {
-						
-					}
-				}
-			}
-		}	
-	}**/
-
-	// this straight-up doesn't work, "WARNING: neither NIfTI-1 qform or sform are valid, MatrixMultiply: m1 is null!"
-	// checked header and it's identical to the copy. Data not being stored? 
-	/**String[] newArgs = new String[8]; 
-	newArgs[0] = "create"; newArgs[1] = args[1]; newArgs[2] = "16"; 
-	newArgs[3] = Short.toString(nds.XDIM); newArgs[4] = Short.toString(nds.YDIM); 
-	newArgs[5] = Short.toString(nds.ZDIM); newArgs[6] = "1"; newArgs[7] = "0";	
-	TestNifti1Api.main(newArgs);
-	**/
-	
-	/** Old code for traversing dimensions
-	 for (int i = 0; i < data1.length; i++) {
-			for (int j = 0; j < data1[i][j].length; j++) {
-				for (int k = 0; k < data1[k].length/2; k++) {
-					if (data1[i][k][j] > 0.5) {
-						for (int l = 0; l < erodeVal; l++) {
-							data1[i][k+l][j] = 0;
-						}
-						break;
-					}
-				}
-				for (int k = data1[0].length - 1; k > data1[k].length/2; k--) { // change from length 0 at some point
-					if (data1[i][k][j] > 0.5) {
-						for (int l = 0; l < erodeVal; l++) {
-							data1[i][k-l][j] = 0;
-						}
-						break;
-					}
-				}
-			}
-		} **/
-		/**for (int i = 0; i < data1[i].length; i++) {
-		for (int j = 0; j < data1[i][j].length; j++) {
-			for (int k = 0; k < data1.length/2; k++) {
-				if (data1[k][i][j] > 0.5) {
-					for (int l = 0; l < erodeVal; l++) {
-						data1[k+l][i][j] = 0;
-					}
-					break;
-				}
-			}
-			for (int k = data1.length - 1; k > data1.length/2; k--) {
-				if (data1[k][i][j] > 0.5) {
-					for (int l = 0; l < erodeVal; l++) {
-						data1[k-l][i][j] = 0;
-					}
-					break;
-				}
-			}
-		}
-	}**/	
 }
