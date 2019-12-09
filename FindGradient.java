@@ -6,7 +6,7 @@ public class FindGradient {
 	public static int LINEVAL2 = 0;
 	public static int COUNT = 0;
 	public static double[] AVGDELTA = new double[6];
-	
+	public static boolean voxelBoundary; 
 	/** 
 	 * the second-to-last argument as an integer is how far you want to traverse to find the gradient
 	 * e.g. 3 means that it will take only the left and right third of the scan since the brain and actual
@@ -18,7 +18,11 @@ public class FindGradient {
 		findGradientHelper(data, data.ZDIM, data.YDIM, data.XDIM, 3, x);
 		findGradientHelper(data, data.ZDIM, data.XDIM, data.YDIM, 3, y);
 		findGradientHelper(data, data.XDIM, data.YDIM, data.ZDIM, 3, z);
-		return AVGDELTA;
+		//return AVGDELTA;
+		
+		traverseData(data, data.ZDIM, data.YDIM, data.XDIM, 3, x);
+		traverseData(data, data.ZDIM, data.XDIM, data.YDIM, 3, y);
+		traverseData(data, data.XDIM, data.YDIM, data.ZDIM, 3, z); 
 	}
 	
 	// a, b and c are the dimensions used for traversing the scan
@@ -134,4 +138,87 @@ public class FindGradient {
 			System.out.println("No dimension specified");
 		}
 	}
+	
+	/**
+	public static double[][][] traverseData(double[][][] data, int a, int b, int c, int bound, String dimension) {
+		
+		new double value = 0;
+		
+		for (int i = 0; i < a; i++) {
+			for (int j = 0; j < b; j++) {
+				for (int k = 0; k < c/bound; k++) {
+					value = returnVoxel(data, i, j, k, k, dimension); 
+					if (value is more than 2 standard deviations away from the average) {
+						break;
+					} else {
+						data = replaceVoxel(data);
+					}
+				}
+				voxelBoundary == false; 
+				
+				for (int k = c - 1; k > c/bound; k--) {
+					value = returnVoxel(data, residuals2, 0, 1, i, j, k, (c-k), dimension);
+					if (value ) {
+						break; 
+					} else {
+						data = replaceVoxel(data); 
+					}
+				}
+				
+				voxelBoundary == false; 
+			}
+		}
+		return data;
+	}
+	
+	
+	public static double returnVoxel(double[][][] data, int i, int j, int k, String dimension) {
+		
+		if (dimension.equals("x")) { // for x dimension data[i][j][k] != 0
+			return data[][][]; 
+		}
+
+		if (dimension.equals("y")) { // for y dimension data[i][k][j] != 0
+			return data[][][]; 
+		}
+
+		if (dimension.equals("z")) { // for z dimension data[k][j][i] != 0
+			return data[][][];
+		} 
+	}
+	
+	public static double[][][] replaceVoxel(double[][][] data, int i, int j, int k, String dimension) {
+		
+		if (dimension.equals("x")) { // for x dimension data[i][j][k] != 0
+			if () {
+				data[][][] == 0; 
+			} else if {
+				data[][][] == 
+			}
+			return data; 
+		}
+
+		if (dimension.equals("y")) { // for y dimension data[i][k][j] != 0
+			if () {
+				data[][][] == 0; 
+			} else if () {
+				
+			}
+			return data;
+		}
+
+		if (dimension.equals("z")) { // for z dimension data[k][j][i] != 0
+			if () { 
+				 data[][][] == 0; 
+			} else if {
+				
+			}
+			return data;
+		}
+		
+		return 0;
+	}
+	*//
+	
+	
 }
