@@ -4,8 +4,8 @@ public class smoothVolume {
 	
 	static double data[][][];
 	static double data1[][][];
-	public static String LOCALPATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1270/TX1270_FREESURFER/mri/orig/";
-	public static String OUTPUT_PATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1270/TX1270_FREESURFER/mri/orig/";
+	public static String LOCALPATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1275/TX1275_FREESURFER/mri/orig/";
+	public static String OUTPUT_PATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1275/TX1275_FREESURFER/mri/orig/";
 	static boolean boundaries[][][];
 	
 	// nifti can't be in double format, this sucks! Change writeVolBlob someday
@@ -40,10 +40,16 @@ public class smoothVolume {
 			//smoothNifti.writeVol(smoothed,(short)0);
 				
 			// testing below here
-			//smoothNifti.writeVol(erode(nds.readDoubleVol((short) 0), 30,10.5, true, false, false),(short)0);
-			//smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
-			findLinearEq.findLinearEquations(data, 3, true, true, true);
 			
+			//smoothNifti.writeVol(erode(nds.readDoubleVol((short) 0), 10, 30, true, true, true, true, true),(short)0);
+			smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
+			//smoothNifti.writeVol(thresholdStandardDev.findGradient(data, true, true, true, 1.75, 2, 9, true, true), (short)0);
+			//smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
+			//smoothNifti.writeVol(erode(nds.readDoubleVol((short) 0), 10, 18, true, true, true, true, true),(short)0);
+			//smoothNifti.writeVol(thresholdStandardDev.findGradient(data, false, true, false, 1.0, 4, true, true), (short)0);
+			smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
+			
+			//findLinearEq.findLinearEquations(data, 3, true, true, true);
 			//data1 = smoothNifti.readDoubleVol((short) 0);	
 			
 			//smoothNifti.writeVol(writeLines(nds.readDoubleVol((short) 0), 50), (short)0);
@@ -99,36 +105,41 @@ public class smoothVolume {
 		return storeAvg;
 	}
 	
-	public static double[][][] erode(double[][][] data, int erode, double lowBound, boolean xdim, boolean ydim, boolean zdim) {
-
+	public static double[][][] erode(double[][][] data, int erode, double lowBound, 
+			boolean xdim, boolean ydim, boolean zdim, boolean firstHalf, boolean secondHalf) {
+	
 		// x-dimension
 		if (xdim == true) {	
 			for (int i = 0; i < data.length; i++) {
 				for (int j = 0; j < data[i].length; j++) {
-					for (int k = 0; k < data[i][j].length/2; k++) {
-						if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
-							for (int l = 0; l < erode; l++) {
-								if (data[i][j][k+l] > lowBound && boundaries[i][j][k+l] == false) {
-									data[i][j][k+l] = (double) 0;
-								} else if (data[i][j][k+l] < lowBound && data[i][j][k+l] != (double) 0) {
-									boundaries[i][j][k+l] = true;
-									break;
+					if (firstHalf == true) {
+						for (int k = 0; k < data[i][j].length/2; k++) {
+							if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
+								for (int l = 0; l < erode; l++) {
+									if (data[i][j][k+l] > lowBound && boundaries[i][j][k+l] == false) {
+										data[i][j][k+l] = (double) 0;
+									} else if (data[i][j][k+l] < lowBound && data[i][j][k+l] != (double) 0) {
+										boundaries[i][j][k+l] = true;
+										break;
+									}
 								}
+								break;
 							}
-							break;
 						}
 					}
-					for (int k = data[i][j].length - 1; k > data[i][j].length/2; k--) {
-						if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
-							for (int l = 0; l < erode; l++) {
-								if (data[i][j][k-l] > lowBound && boundaries[i][j][k-l] == false) {
-									data[i][j][k-l] = (double) 0;
-								} else if (data[i][j][k-l] < lowBound && data[i][j][k-l] != (double) 0) {
-									boundaries[i][j][k-l] = true;
-									break;
+					if (secondHalf == true) {
+						for (int k = data[i][j].length - 1; k > data[i][j].length/2; k--) {
+							if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
+								for (int l = 0; l < erode; l++) {
+									if (data[i][j][k-l] > lowBound && boundaries[i][j][k-l] == false) {
+										data[i][j][k-l] = (double) 0;
+									} else if (data[i][j][k-l] < lowBound && data[i][j][k-l] != (double) 0) {
+										boundaries[i][j][k-l] = true;
+										break;
+									}
 								}
+								break;
 							}
-							break;
 						}
 					}
 				}
@@ -139,31 +150,34 @@ public class smoothVolume {
 		if (ydim == true) {
 			for (int i = 0; i < data.length; i++) {
 				for (int k = 0; k < data[i][0].length; k++) {
-					for (int j = 0; j < data[i].length/2; j++) {
-						if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
-							for (int l = 0; l < erode; l++) {
-								if (data[i][j+l][k] > lowBound && boundaries[i][j+l][k] == false) {
-									data[i][j+l][k] = (double) 0;
-								} else if (data[i][j+l][k] < lowBound && data[i][j+l][k] != (double) 0) {
-									boundaries[i][j+l][k] = true;
-									break;
+					if (firstHalf == true) {
+						for (int j = 0; j < data[i].length/2; j++) {
+							if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
+								for (int l = 0; l < erode; l++) {
+									if (data[i][j+l][k] > lowBound && boundaries[i][j+l][k] == false) {
+										data[i][j+l][k] = (double) 0;
+									} else if (data[i][j+l][k] < lowBound && data[i][j+l][k] != (double) 0) {
+										boundaries[i][j+l][k] = true;
+										break;
+									}
 								}
+								break;
 							}
-							break;
 						}
 					}
-	
-					for (int j = data[i].length - 1; j > data[i].length/2; j--) {
-						if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
-							for (int l = 0; l < erode; l++) {
-								if (data[i][j-l][k] > lowBound && boundaries[i][j-l][k] == false) {
-									data[i][j-l][k] = (double) 0;
-								} else if (data[i][j-l][k] < lowBound && data[i][j-l][k] != (double) 0) {
-									boundaries[i][j-l][k] = true;
-									break;
+					if (secondHalf == true) {
+						for (int j = data[i].length - 1; j > data[i].length/2; j--) {
+							if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
+								for (int l = 0; l < erode; l++) {
+									if (data[i][j-l][k] > lowBound && boundaries[i][j-l][k] == false) {
+										data[i][j-l][k] = (double) 0;
+									} else if (data[i][j-l][k] < lowBound && data[i][j-l][k] != (double) 0) {
+										boundaries[i][j-l][k] = true;
+										break;
+									}
 								}
+								break;
 							}
-							break;
 						}
 					}
 				}
@@ -174,31 +188,34 @@ public class smoothVolume {
 		if (zdim == true) {
 			for (int k = 0; k < data[0][0].length; k++) {
 				for (int j = 0; j < data[k].length; j++) {
-					for (int i = 0; i < data.length/2; i++) {
-						if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
-							for (int l = 0; l < erode; l++) {
-								if (data[i+l][j][k] > lowBound && boundaries[i+l][j][k] == false) {
-									data[i+l][j][k] = (double) 0;
-								} else if (data[i+l][j][k] < lowBound && data[i+l][j][k] != (double) 0) {
-									boundaries[i+l][j][k] = true;
-									break;
-								}		
+					if (firstHalf == true) {
+						for (int i = 0; i < data.length/2; i++) {
+							if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
+								for (int l = 0; l < erode; l++) {
+									if (data[i+l][j][k] > lowBound && boundaries[i+l][j][k] == false) {
+										data[i+l][j][k] = (double) 0;
+									} else if (data[i+l][j][k] < lowBound && data[i+l][j][k] != (double) 0) {
+										boundaries[i+l][j][k] = true;
+										break;
+									}		
+								}
+								break;
 							}
-							break;
 						}
 					}
-	
-					for (int i = data.length - 1; i > data.length/2; i--) {
-						if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
-							for (int l = 0; l < erode; l++) {
-								if (data[i-l][j][k] > lowBound && boundaries[i-l][j][k] == false) {
-									data[i-l][j][k] = (double) 0;
-								} else if (data[i-l][j][k] < lowBound && data[i-l][j][k] != (double) 0) {
-									boundaries[i-l][j][k] = true;
-									break;
+					if (secondHalf == true) {
+						for (int i = data.length - 1; i > data.length/2; i--) {
+							if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
+								for (int l = 0; l < erode; l++) {
+									if (data[i-l][j][k] > lowBound && boundaries[i-l][j][k] == false) {
+										data[i-l][j][k] = (double) 0;
+									} else if (data[i-l][j][k] < lowBound && data[i-l][j][k] != (double) 0) {
+										boundaries[i-l][j][k] = true;
+										break;
+									}
 								}
+								break;
 							}
-							break;
 						}
 					}
 				}
