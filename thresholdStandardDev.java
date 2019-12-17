@@ -1,9 +1,12 @@
 
 public class thresholdStandardDev {
-	public static double LINEVAL = 0;
-	public static double LINEVAL2 = 0;
+	
+	public static double LINEVAL = 0; // for first half of the scan
+	public static double LINEVAL2 = 0;// for the opposite half of each dimension of the scan
 	public static int COUNT = 0;
-	public static double[] AVGDELTA = new double[6];
+	
+	// global variable storing avgs of each half: [X left, X right, Y superior, Y inferior, Z anterior, Z posterior]
+	public static double[] AVGDELTA = new double[6]; 
 
 	/** 
 	 * the second-to-last argument as an integer is how far you want to traverse to find the gradient
@@ -21,11 +24,9 @@ public class thresholdStandardDev {
 		int YDIM = data[0].length;
 		int ZDIM = data.length;
 		
-		
-		
 		System.out.println("X, Y, Z Dimensions are: " + XDIM + " " + YDIM + " " + ZDIM);
-		// matrices for storing the standard deviation for each row in a grid representing both sides of the scan
 		
+		// matrices for storing the standard deviation for each row in a grid representing both sides of the scan
 		if (x == true) {
 			data = traverseData(data, findGradientHelper(data, ZDIM, YDIM, XDIM, bound, "x"), 
 				ZDIM, YDIM, XDIM, bound, voxelBound, "x", stdev, firstHalf, secondHalf);
@@ -40,6 +41,7 @@ public class thresholdStandardDev {
 		}
 		// TODO: Double-check that the anatomy corresponds with the x, y, z dimensions
 		// UPDATE: Y and Z are swapped I guess, fix at some point, not critical right now as long as it works
+		// Will be necessary to address if this is ever published so as not to confuse the client. 
 		
 		System.out.println("Average change in each dimension: left = " + AVGDELTA[1] + " right = " + AVGDELTA[1] + " dorsal = " + AVGDELTA[2] + " ventral = " + AVGDELTA[3] + " anterior = " + AVGDELTA[4] + " posterior = " + AVGDELTA[5]);
 		return data;
@@ -48,13 +50,11 @@ public class thresholdStandardDev {
 	// a, b and c are the dimensions used for traversing the scan
 	public static double[][][] findGradientHelper(double[][][] data, int a, int b, int c, int bound, String dimension) {
 
-		// two gradients for moving toward the center of the scan
-		double[][][] gradients = new double[2][a][b];
-		double[][][] averages = new double[2][a][b];
+		// two gradients for moving toward the center of the scan and two measures of averages for each dimension
+		double[][][] gradients = new double[2][a][b]; double[][][] averages = new double[2][a][b];
 
 		// for calculating the standard deviation of the last dimensional row
 		double[] residuals = new double[c/bound+1]; double[] residuals2 = new double[c/bound+1];
-		
 		
 		// counter for traversing the scan and counting non-zero voxels
 		COUNT = 0;
@@ -197,6 +197,8 @@ public class thresholdStandardDev {
 	// stdev is how many standard deviations away from the mean the value of the gradient should be at each location
 	// before determining that it should be a boundary, default is 2, add average[][][] grid at some point to arguments
 	// to correspond with the stdev grid.
+	// voxelBound corresponds with the intensity at which the boundary should be set
+	// bound corresponds with how the scan should be broken down, i.e. into quarters, thirds, halves etc. 
 
 	public static double[][][] traverseData(double[][][] data, double gradient[][][], int a, int b, int c, int bound, 
 			double voxelBound, String dimension, double stdev, boolean firstHalf, boolean secondHalf) {
@@ -305,5 +307,43 @@ public class thresholdStandardDev {
 			}
 		}
 		return voxelBoundary;
+	}
+	
+	/**
+	 * TODO: Need to update to incorporate smoothLength argument
+	 * @param data
+	 * @param a, b, c represent respective dimensions
+	 * @param smoothLength
+	 * @param dimension
+	 * @return
+	 */
+	
+	public static double[][][] movingAverage(double[][][] data, int smoothLength) {
+		
+		int x = data[0][0].length; int y = data[0].length; int z = data.length; // fix from being [0] at some point
+		
+		data = movingAverageHelper(data, z, y, x, smoothLength, "x");
+		data = movingAverageHelper(data, z, x, y, smoothLength, "y");
+		data = movingAverageHelper(data, x, y, z, smoothLength, "z");
+		return data; 
+	}
+	
+	public static double[][][] movingAverageHelper(double[][][] data, int a, int b, int c, int smoothLength, String dimension) {
+		for (int i = 1; i < a; i++) {
+			for (int j = 1; j < b; j++) { 
+				for (int k = 1; k < c - 1; k++) {
+					if (dimension.equals("x")) {
+						data[i][j][k] = (data[i][j][k-1] + data[i][j][k] + data[i][j][k+1])/3; 
+					} else if (dimension.equals("y")) {
+						data[i][k][j] = (data[i][k-1][j] + data[i][k][j] + data[i][k+1][j])/3;
+					} else if (dimension.equals("z")) {
+						data[k][j][i] = (data[k-1][j][i] + data[k][j][i] + data[k+1][j][i])/3;
+					} else {
+						System.out.println("We shouldn't reach this statement.");
+					}
+				}
+			}
+		}
+		return data;
 	}
 }
