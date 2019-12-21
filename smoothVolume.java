@@ -29,20 +29,21 @@ public class smoothVolume {
 		smoothNifti.writeVol(ORIG_DATA, (short) 0);
 
 		// smooth volume
-		smoothNifti.writeVol(thresholdStandardDev.movingAverage(smoothNifti.readDoubleVol((short) 0), 1), (short) 0);
+		//smoothNifti.writeVol(thresholdStandardDev.movingAverage(smoothNifti.readDoubleVol((short) 0), 1), (short) 0);
 
 		//set boundary matrix, switch to double[][][] at some point?
 		writeBoundaries(nds);
 
-		smoothNifti.writeVol(erode(smoothNifti.readDoubleVol((short) 0), 4, 0, true, true, true, true, true), (short)0);
+		//smoothNifti.writeVol(erode(smoothNifti.readDoubleVol((short) 0), 15, 7, false, true, false, true, false), (short)0);
 		//smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
-		smoothNifti.writeVol(thresholdStandardDev.findGradient(smoothNifti.readDoubleVol((short) 0), true, true, true, 2, 3, 8.5, true, true), (short)0);
+		//smoothNifti.writeVol(thresholdStandardDev.findGradient(smoothNifti.readDoubleVol((short) 0), true, false, true, 2, 3, 9, true, true), (short)0);
 
 		////smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
-		smoothNifti.writeVol(erode(smoothNifti.readDoubleVol((short) 0), 3, 0, true, true, true, true, true),(short) 0);
+		smoothNifti.writeVol(erode(smoothNifti.readDoubleVol((short) 0), 20, 7, true, false, true, false, true), (short) 0);
 		
 		////smoothNifti.writeVol(thresholdStandardDev.findGradient(smoothNifti.readDoubleVol((short)0), false, true, false, 1.0, 4, true, true), (short)0);
 		smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 2, true, true, true), (short) 0);
+		//smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 2, true, true, true), (short) 0);
 	}
 	
 	// sets the boundaries for a given scan, takes boolean data and uses dimensions of desired scan
@@ -104,75 +105,71 @@ public class smoothVolume {
 			for (int j = 0; j < b; j++) {
 				if (firstHalf == true) {
 					for (int k = 0; k < c/2; k++) {
-						if (dimension.equals("x")) {
+						if (dimension.equals("x") && data[i][j][k] != 0 && boundaries[i][j][k] == false) {
 							for (int l = 0; l < erode; l++) {
-								if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
-									data[i][j][k+l] = (double) 0;
-								} else if (data[i][j][k+l] < lowBound && data[i][j][k+l] != (double) 0) {
+								if (data[i][j][k+l] < lowBound && data[i][j][k+l] != (double) 0) {
 									boundaries[i][j][k+l] = true;
 									break;
+								} else if (data[i][j][k+l] != 0 && boundaries[i][j][k+l] == false) {
+									data[i][j][k+l] = (double) 0;
 								}
 							}
 							break;
-						} else if (dimension.equals("y")) {
+						} else if (dimension.equals("y") && data[i][k][j] != 0 && boundaries[i][k][j] == false) {
 							for (int l = 0; l < erode; l++) {
-								if (data[i][k][j] != 0 && boundaries[i][k][j] == false) {
-									data[i][j][k+l] = (double) 0;
-								} else if (data[i][k+l][j] < lowBound && data[i][k+l][j] != (double) 0) {
+								if (data[i][k+l][j] < lowBound && data[i][k+l][j] != (double) 0) {
 									boundaries[i][k+l][j] = true;
 									break;
+								} else if (data[i][k+l][j] != 0 && boundaries[i][k+l][j] == false) {
+									data[i][k+l][j] = (double) 0;
 								}
 							}
 							break;
-						} else if (dimension.equals("z")) {
+						} else if (dimension.equals("z") && data[k][j][i] != 0 && boundaries[k][j][i] == false) {
 							for (int l = 0; l < erode; l++) {
-								 if (data[k][j][i] != 0 && boundaries[k][j][i] == false) {
-									data[k+l][j][i] = (double) 0;
-								} else if (data[k+l][j][i] < lowBound && data[k+l][j][i] != (double) 0) {
+								 if (data[k+l][j][i] < lowBound && data[k+l][j][i] != (double) 0) {
 									boundaries[k+l][j][i] = true;
 									break;
+								} else if (data[k+l][j][i] != 0 && boundaries[k+l][j][i] == false) {
+									data[k+l][j][i] = (double) 0;
 								}
 							}
 							break;	
-						} else {
-							System.out.println("we shouldn't reach this statement");
-						}
+						} 
 					}
 				}
 				if (secondHalf == true) {
 					for (int k = c-1; k > c/2; k--) {
-						if (dimension.equals("x")) {
+						if (dimension.equals("x") && data[i][j][k] != 0 && boundaries[i][j][k] == false ) {
 							for (int l = 0; l < erode; l++) {
-								if (data[i][j][k] != 0 && boundaries[i][j][k] == false) {
-									data[i][j][k-l] = (double) 0;
-								}  else if (data[i][j][k-l] < lowBound && data[i][j][k-l] != (double) 0) {
+								if (data[i][j][k-l] < lowBound && data[i][j][k-l] != (double) 0) {
 									boundaries[i][j][k-l] = true;
 									break;
+								} else if (data[i][j][k-l] != 0 && boundaries[i][j][k-l] == false) {
+									data[i][j][k-l] = (double) 0;
 								}
 							}
 							break;
-						} else if (dimension.equals("y")) {
+						} else if (dimension.equals("y") && data[i][k][j] != 0 && boundaries[i][k][j] == false) {
 							for (int l = 0; l < erode; l++) {
-								if (data[i][k][j] != 0 && boundaries[i][k][j] == false) {
-									data[i][j][k-l] = (double) 0;
-								} else if (data[i][k-l][j] < lowBound && data[i][k-l][j] != (double) 0) {
+								if (data[i][k-l][j] < lowBound && data[i][k-l][j] != (double) 0) {
 									boundaries[i][k-l][j] = true;
 									break;
+								} else if (data[i][k-l][j] != 0 && boundaries[i][k-l][j] == false) {
+									data[i][k-l][j] = (double) 0;
 								}
 							}
 							break;	
-						} else if (dimension.equals("z")) {
+						} else if (dimension.equals("z") && data[k][j][i] != 0 && boundaries[k][j][i] == false) {
 							for (int l = 0; l < erode; l++) {
-								if (data[k][j][i] != 0 && boundaries[k][j][i] == false) {
-									data[k-l][j][i] = (double) 0;
-								} else if (data[k-l][j][i] < lowBound && data[k-l][j][i] != (double) 0) {
+								if (data[k-l][j][i] < lowBound && data[k-l][j][i] != (double) 0) {
 									boundaries[k-l][j][i] = true;
 									break;
+								} else if (data[k-l][j][i] != 0 && boundaries[k-l][j][i] == false) {
+									data[k-l][j][i] = (double) 0;
 								}
 							}
 							break;
-						} else {
-							System.out.println("we shouldn't reach this statement");
 						}
 					}
 				}
@@ -214,46 +211,40 @@ public class smoothVolume {
 	}
 	
 	public static double[][][] cleanUpHelper(double[][][] data, int erode, int a, int b, int c, String dimension) {
-
+		
+		boolean setLength = false; 
+		
 		for (int i = 0; i < a; i++) {
 			for (int j = 0; j < b; j++) {
 				for (int k = 0; k < c/2 - erode; k++) {
 					for (int l = 0; l < erode; l++) {
-						if (dimension.equals("x")) {
-							if (data[i][j][k] == 0 && data[i][j][k+l] != 0 && data[i][j][k+l+1] == 0) {	
-								data[i][j][k+l] = 0;
-							}
-						} else if (dimension.equals("y")) {
-							if (data[i][k][j] == 0 && data[i][k+l][j] != 0 && data[i][k+l+1][j] == 0) {
-								data[i][k+l][j] = 0;
-							}
-						} else if (dimension.equals("z")) {
-							if (data[k][j][i] == 0 && data[k+l][j][i] != 0 && data[k+l+1][j][i]  == 0) {
-								data[k+l][j][i] = 0;
-							}
-						} else {
-							System.out.println("We shouldn't reach this statement.");
-						}
+						if (dimension.equals("x") && data[i][j][k] == 0 && data[i][j][k+l] != 0 && data[i][j][k+l+1] == 0 || setLength == true) {
+							data[i][j][k+l] = 0;
+							setLength = true; 
+						} else if (dimension.equals("y") && data[i][k][j] == 0 && data[i][k+l][j] != 0 && data[i][k+l+1][j] == 0 || setLength == true) {
+							data[i][k+l][j] = 0;
+							setLength = true; 
+						} else if (dimension.equals("z") && data[k][j][i] == 0 && data[k+l][j][i] != 0 && data[k+l+1][j][i] == 0 || setLength == true ) {
+							data[k+l][j][i] = 0;
+							setLength = true; 
+						} 
 					}
+					setLength = false;
 				}
 				for (int k = c - 1; k > c/2 + erode; k--) {
 					for (int l = 0; l < erode; l++) {
-						if (dimension.equals("x")) {
-							if (data[i][j][k] == 0 && data[i][j][k-l] != 0 && data[i][j][k-l-1] == 0) {
-								data[i][j][k-l] = 0;
-							}
-						} else if (dimension.equals("y")) {
-							if (data[i][k][j] == 0 && data[i][k-l][j] != 0 && data[i][k-l-1][j] == 0) {
-								data[i][k-l][j] = 0;
-							}
-						} else if (dimension.equals("z")) {
-							if (data[k][j][i] == 0 && data[k-l][j][i] != 0 && data[k-l-1][j][i]  == 0) {
-								data[k-l][j][i] = 0;
-							}
-						} else {
-							System.out.println("We shouldn't reach this statement.");
-						}
+						if (dimension.equals("x") && data[i][j][k] == 0 && data[i][j][k-l] != 0 && data[i][j][k-l-1] == 0 || setLength == true) {
+							data[i][j][k-l] = 0;
+							setLength = true; 
+						} else if (dimension.equals("y") && data[i][k][j] == 0 && data[i][k-l][j] != 0 && data[i][k-l-1][j] == 0 || setLength == true) {
+							data[i][k-l][j] = 0;
+							setLength = true; 
+						} else if (dimension.equals("z") && data[k][j][i] == 0 && data[k-l][j][i] != 0 && data[k-l-1][j][i] == 0 || setLength == true) {
+							data[k-l][j][i] = 0;
+							setLength = true; 
+						} 
 					}
+					setLength = false;
 				}
 			}
 		}

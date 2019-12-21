@@ -41,7 +41,9 @@ public class thresholdStandardDev {
 		}
 		// TODO: Double-check that the anatomy corresponds with the x, y, z dimensions
 		// UPDATE: Y and Z are swapped I guess, fix at some point, not critical right now as long as it works
-		// Will be necessary to address if this is ever published so as not to confuse the client. 
+		// Will be necessary to address if this is ever published so as not to confuse the client.
+		
+		// anterior and posterior are mixed up
 		
 		System.out.println("Average change in each dimension: left = " + AVGDELTA[1] + " right = " + AVGDELTA[1] + " dorsal = " + AVGDELTA[2] + " ventral = " + AVGDELTA[3] + " anterior = " + AVGDELTA[4] + " posterior = " + AVGDELTA[5]);
 		return data;
