@@ -1,4 +1,6 @@
 
+
+
 public class thresholdStandardDev {
 	
 	public static double LINEVAL = 0; // for first half of the scan
@@ -8,13 +10,14 @@ public class thresholdStandardDev {
 	// global variable storing avgs of each half: [X left, X right, Y superior, Y inferior, Z anterior, Z posterior]
 	public static double[] AVGDELTA = new double[6]; 
 
-	/** 
-	 * the second-to-last argument as an integer is how far you want to traverse to find the gradient
-	 * e.g. 3 means that it will take only the left and right third of the scan since the brain and actual
-	 * data is likely to be in the middle. The last argument is the dimension we're looking for. 
+	/** @Author Kody Zalewski 12.22.2019
+	 * @Params Takes nifti scan data as 3-dimensional matrix of doubles. 
+	 * Takes x, y, z dimensions as boolean. 
+	 * Takes standard deviation as a double val, 
 	 * Lowering the standard dev threshold decreases the boundary at which the voxels are masked out.
-	 * Integer "bound" corresponds to how the scan is divided up, e.g. "3" will measure the farthest thirds from the center
-	 * "4" is the farther quarters, "2" would be each half, covering the whole scan. 
+	 * Takes bound as int, corresponds to how the scan should be divided up to calculate the standard dev. (e.g, 2 = halves, 3 = thirds etc)
+	 * Takes voxelBound as double, what intensity the gradient should halt calculation at. 
+	 * @returns the altered data passed to findGradient() as a matrix of doubles to be written to a new nifti scan.  
 	 */
 
 	public static double[][][] findGradient(double[][][] data, boolean x, boolean y, boolean z, 
@@ -48,7 +51,15 @@ public class thresholdStandardDev {
 		System.out.println("Average change in each dimension: left = " + AVGDELTA[1] + " right = " + AVGDELTA[1] + " dorsal = " + AVGDELTA[2] + " ventral = " + AVGDELTA[3] + " anterior = " + AVGDELTA[4] + " posterior = " + AVGDELTA[5]);
 		return data;
 	}
-
+	
+	
+	/** @author Kody Zalewski
+	 * @params Helper method for FindGradient takes scan data as 3-dimensional matrix of doubles. 
+	 * Takes int as a, b, c, corresponding to the dimensions of the scan. 
+	 * Takes a string as whether we are traversing the x, y, or z dimensions of the scan.
+	 * @returns 3-dimensional matrix. Columns of data correspond to the first and second halves of the
+	 * scan being processed and contain a grid of gradients corresponding to each row of data.  
+	*/
 	// a, b and c are the dimensions used for traversing the scan
 	public static double[][][] findGradientHelper(double[][][] data, int a, int b, int c, int bound, String dimension) {
 
@@ -91,10 +102,12 @@ public class thresholdStandardDev {
 		return gradients;
 	}
 	
-	/** @params the original data, the gradient for storing info, forward or backward will equal
-	// 0 or 1 depending on which half of the scan dimension is being traversed.
-	// i, j, k, locate the voxel value on the scan and a, c are the location
-	// resid value is what half of the scan is where the value is being stored
+	/** @params The original data as a 3-dimensional matrix of double values. 
+	 * The array of residuals for deriving the standard dev and average from. 
+	 * Forward or backward will equal 0 or 1 as int depending on which half of the scan dimension is being traversed.
+	 * i, j, k, locate the voxel value on the scan in the 3-dimensional matrix.
+	 * resid value is what half of the scan is where the value is being stored as int.
+	 * Dimension is the x, y, or z dimension of the scan as string.  
 	   @returns the gradient of the scan with the standard deviation at each voxel location 
 	 */
 
@@ -142,8 +155,7 @@ public class thresholdStandardDev {
 	}
 
 
-	/** @author kody
-	 *  @params data of a line of voxels of mri data,
+	/** @params Data of a array of voxels of mri data, 
 	 *  the average intensity of the line of voxel data as double
 	 *  @returns the standard deviation of the voxel residuals
 	 */
@@ -173,7 +185,10 @@ public class thresholdStandardDev {
 		return average/n;
 	}
 
-	/**
+	/**@params Takes dimensions x, y, z as integers corresponding to a, b, and c. 
+	 * Takes which dimension is being measured (x,y,z) as string
+	 * Bound is the dimension by which the scan is divided into (halves = 2, thirds = 3 etc.) as int'
+	 * Sets the average change in dimension to the global array of averages AVGDELTA.
 	 */
 	public static void setAvgDelta(int a, int b, int c, String dimension, int bound) {
 		
