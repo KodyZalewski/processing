@@ -10,13 +10,13 @@ public class thresholdStandardDev {
 	// global variable storing avgs of each half: [X left, X right, Y superior, Y inferior, Z anterior, Z posterior]
 	public static double[] AVGDELTA = new double[6]; 
 
-	/** @Author Kody Zalewski 12.22.2019
+	/** @Author KJZ 12.22.2019
 	 * @Params Takes nifti scan data as 3-dimensional matrix of doubles. 
-	 * Takes x, y, z dimensions as boolean. 
-	 * Takes standard deviation as a double val, 
-	 * Lowering the standard dev threshold decreases the boundary at which the voxels are masked out.
-	 * Takes bound as int, corresponds to how the scan should be divided up to calculate the standard dev. (e.g, 2 = halves, 3 = thirds etc)
-	 * Takes voxelBound as double, what intensity the gradient should halt calculation at. 
+	 * @param Takes x, y, z dimensions as boolean. 
+	 * @param Takes standard deviation as a double val, 
+	 * @param Lowering the standard dev threshold decreases the boundary at which the voxels are masked out.
+	 * @param Takes bound as int, corresponds to how the scan should be divided up to calculate the standard dev. (e.g, 2 = halves, 3 = thirds etc)
+	 * @param Takes voxelBound as double, what intensity the gradient should halt calculation at. 
 	 * @returns the altered data passed to findGradient() as a matrix of doubles to be written to a new nifti scan.  
 	 */
 
@@ -46,17 +46,18 @@ public class thresholdStandardDev {
 		// UPDATE: Y and Z are swapped I guess, fix at some point, not critical right now as long as it works
 		// Will be necessary to address if this is ever published so as not to confuse the client.
 		
-		// anterior and posterior are mixed up
+		// anterior and posterior are mixed up, this could also be b/c the scans are in an odd orientation
 		
-		System.out.println("Average change in each dimension: left = " + AVGDELTA[1] + " right = " + AVGDELTA[1] + " dorsal = " + AVGDELTA[2] + " ventral = " + AVGDELTA[3] + " anterior = " + AVGDELTA[4] + " posterior = " + AVGDELTA[5]);
+		System.out.println("Average change in each dimension: left = " + round(AVGDELTA[0],2) + " right = " + round(AVGDELTA[1],2) + " dorsal = " + round(AVGDELTA[2],2) + 
+				" ventral = " + round(AVGDELTA[3],2) + " anterior = " + round(AVGDELTA[4],2) + " posterior = " + round(AVGDELTA[5],2));
 		return data;
 	}
 	
 	
-	/** @author Kody Zalewski
+	/** @author KJZ
 	 * @params Helper method for FindGradient takes scan data as 3-dimensional matrix of doubles. 
-	 * Takes int as a, b, c, corresponding to the dimensions of the scan. 
-	 * Takes a string as whether we are traversing the x, y, or z dimensions of the scan.
+	 * @params Takes int as a, b, c, corresponding to the dimensions of the scan. 
+	 * @params Takes a string as whether we are traversing the x, y, or z dimensions of the scan.
 	 * @returns 3-dimensional matrix. Columns of data correspond to the first and second halves of the
 	 * scan being processed and contain a grid of gradients corresponding to each row of data.  
 	*/
@@ -80,8 +81,8 @@ public class thresholdStandardDev {
 				}
 				
 				COUNT = 0;
-				averages[0][i][j] = Math.abs(takeAverage(residuals));
-				gradients[0][i][j] = Math.abs(standardDeviation(residuals, averages[0][i][j]));
+				averages[0][i][j] = takeAverage(residuals); //removed absolute val
+				gradients[0][i][j] = standardDeviation(residuals, averages[0][i][j]); //removed absolute val
 				
 				
 				for (int k = c - 1; k > (c - c/bound); k--) {
@@ -89,8 +90,8 @@ public class thresholdStandardDev {
 					
 				}
 				COUNT = 0;
-				averages[1][i][j] = Math.abs(takeAverage(residuals));
-				gradients[1][i][j] = Math.abs(standardDeviation(residuals2, averages[1][i][j]));
+				averages[1][i][j] = takeAverage(residuals); //removed absolute val
+				gradients[1][i][j] = standardDeviation(residuals2, averages[1][i][j]); //removed absolute val
 				
 			}
 		}
@@ -155,7 +156,7 @@ public class thresholdStandardDev {
 	}
 
 
-	/** @params Data of a array of voxels of mri data, 
+	/** @params residuals are single double array of voxels from mri data, 
 	 *  the average intensity of the line of voxel data as double
 	 *  @returns the standard deviation of the voxel residuals
 	 */
@@ -169,7 +170,7 @@ public class thresholdStandardDev {
 				n++;
 			}
 		}
-		return Math.sqrt((standardDev/(n - power))); 
+		return Math.sqrt((standardDev/(n - power)));
 	}
 	
 	public static double takeAverage(double[] residuals) {
@@ -210,13 +211,23 @@ public class thresholdStandardDev {
 	}
 
 	//TODO: break up everything below this line into it's own separate .java file at some point
-
-	// stdev is how many standard deviations away from the mean the value of the gradient should be at each location
-	// before determining that it should be a boundary, default is 2, add average[][][] grid at some point to arguments
-	// to correspond with the stdev grid.
-	// voxelBound corresponds with the intensity at which the boundary should be set
-	// bound corresponds with how the scan should be broken down, i.e. into quarters, thirds, halves etc. 
-
+	
+	/** @author KJZ
+	 * @param data is double 3D matrix of T1 mri data.
+	 * @param is the mapping of the avg change in each dimension.
+	 * @param a, b, c as int correspond to the desired dimensions to traverse the scan.
+	 * @param bound as integer corresponds with how the scan should be broken down (i.e. into 4=quarters, 3=thirds, 2=halves etc).
+	 * @param voxelBound as double is the given lowest intensity to stop the thresholding at.
+	 * @param dimension as string x/y/z as to which dimension should be processed.
+	 * @param stdev as double is how many standard deviations should be the cutoff for outlier intensities denoting 
+	 * the outer boundary of the brain (default=2).
+	 * @param firstHalf/secondHalf are boolean as to whether or not to process only one half of a given dimension of the brain.
+	 * 
+	 * @return double as 3D matrix to be written to a new scan with outlier values thresholded out */
+	
+	// add average[][][] grid at some point to arguments to correspond with the stdev grid.
+	// removed Math.abs(), maybe this will work better
+	
 	public static double[][][] traverseData(double[][][] data, double gradient[][][], int a, int b, int c, int bound, 
 			double voxelBound, String dimension, double stdev, boolean firstHalf, boolean secondHalf) {
 
@@ -254,11 +265,11 @@ public class thresholdStandardDev {
 
 	public static double[][][] replaceVoxel(double[][][] data, int i, int j, int k, String dimension) {
 		
-		if (dimension.equals("x")) { // for x dimension data[i][j][k] != 0
+		if (dimension.equals("x")) {
 			data[i][j][k] = 0; 
-		} else if (dimension.equals("y")) { // for y dimension data[i][k][j] != 0
+		} else if (dimension.equals("y")) {
 			data[i][k][j] = 0; 
-		} else if (dimension.equals("z")) { // for z dimension data[k][j][i] != 0
+		} else if (dimension.equals("z")) { 
 			data[k][j][i] = 0;
 		} else {
 			System.out.println("No valid x, y, z dimension argument provided.");		
@@ -266,18 +277,21 @@ public class thresholdStandardDev {
 		return data;
 	}
 
+	// Assuming T1 weighted imaging with dark outer boundary, otherwise should be less-than the standard deviation
+	// note that stdev is also given as a negative value,
+	
 	public static boolean returnVoxel(double[][][] data, double[][][] gradient, int forward, int backward, int i, int j, int k, 
 			String dimension, double stdev, double voxelBound, boolean voxelBoundary) {
-
+		
 		if (dimension.equals("x")) { // for x dimension data[i][j][k] != 0
 			if (forward == 1 && backward == 0) {
-				if (Math.abs((Math.abs(data[i][j][k+forward] - data[i][j][k]) - AVGDELTA[0])) / gradient[0][i][j] < stdev && data[i][j][k] > voxelBound) {
+				if (((data[i][j][k+forward] - data[i][j][k] - AVGDELTA[0]) / gradient[0][i][j]) > -stdev && data[i][j][k] > voxelBound) {
 					voxelBoundary = false; 
 				} else if (data[i][j][k] > 1) {
 					voxelBoundary = true;  
 				}
 			} else if (forward == 0 && backward == 1) {
-				if (Math.abs((Math.abs(data[i][j][k-backward] - data[i][j][k]) - AVGDELTA[1]) / gradient[1][i][j]) < stdev && data[i][j][k] > voxelBound) {
+				if (((data[i][j][k-backward] - data[i][j][k] - AVGDELTA[1]) / gradient[1][i][j]) > -stdev && data[i][j][k] > voxelBound) {
 					voxelBoundary = false;
 				} else if (data[i][j][k] > 1) {
 					voxelBoundary = true;  
@@ -289,13 +303,13 @@ public class thresholdStandardDev {
 
 		if (dimension.equals("y")) { // for y dimension data[i][k][j] != 0
 			if (forward == 1 && backward == 0) {
-				if (Math.abs(Math.abs(data[i][k+forward][j] - data[i][k][j]) - AVGDELTA[2]) / gradient[0][i][j] < stdev && data[i][k][j] > voxelBound) {
+				if ((data[i][k+forward][j] - data[i][k][j] - AVGDELTA[2] / gradient[0][i][j]) > -stdev && data[i][k][j] > voxelBound) {
 					voxelBoundary = false;
 				} else if (data[i][k][j] > 1) {
 					voxelBoundary = true; 
 				}
 			} else if (forward == 0 && backward == 1) {
-				if (Math.abs(Math.abs(data[i][k-backward][j] - data[i][k][j]) - AVGDELTA[3]) / gradient[1][i][j] < stdev && data[i][k][j] > voxelBound) {
+				if ((data[i][k-backward][j] - data[i][k][j] - AVGDELTA[3] / gradient[1][i][j]) > -stdev && data[i][k][j] > voxelBound) {
 					voxelBoundary = false; 
 				} else if (data[i][k][j] > 1) {
 					voxelBoundary = true; 
@@ -308,13 +322,13 @@ public class thresholdStandardDev {
 
 		if (dimension.equals("z")) { // for z dimension data[k][j][i] != 0
 			if (forward == 1 && backward == 0) {
-				if (Math.abs(Math.abs(data[k+forward][j][i] - data[k][j][i]) - AVGDELTA[4]) / gradient[0][i][j] < stdev && data[k][j][i] > voxelBound) {
+				if ((data[k+forward][j][i] - data[k][j][i] - AVGDELTA[4] / gradient[0][i][j]) > -stdev && data[k][j][i] > voxelBound) {
 					voxelBoundary = false; 
 				}  else if (data[k][j][i] > 1 || data[k][j][i] < voxelBound) {
 					voxelBoundary = true; 
 				}
 			} else if (forward == 0 && backward == 1) {
-				if (Math.abs(Math.abs(data[k-backward][j][i] - data[k][j][i]) - AVGDELTA[5]) / gradient[1][i][j] < stdev && data[k][j][i] > voxelBound) {
+				if ((data[k-backward][j][i] - data[k][j][i] - AVGDELTA[5] / gradient[1][i][j]) > -stdev && data[k][j][i] > voxelBound) {
 					voxelBoundary = false; 
 				} else if (data[k][j][i] > 1) {
 					voxelBoundary = true; 
@@ -327,16 +341,15 @@ public class thresholdStandardDev {
 	}
 	
 	/**
-	 * TODO: Need to update to incorporate smoothLength argument
-	 * @param data
-	 * @param a, b, c represent respective dimensions
-	 * @param smoothLength
-	 * @param dimension
-	 * @return
+	 * @author KJZ
+	 * @param Takes data as double 3D matrix, int a, b, c represent respective dimensions depending on which
+	 * dimension (passed as String) is being traversed, smoothLength denotes how many voxels along the dimension to incorporate
+	 * into smoothing (default is 1). Number of outliers is reduced across the scan. 
+	 * @return double 3D matrix to be written to a new scan as a smoothed volume.
 	 */
 	
 	public static double[][][] movingAverage(double[][][] data, int smoothLength) {
-		
+	
 		int x = data[0][0].length; int y = data[0].length; int z = data.length; // fix from being [0] at some point
 		
 		data = movingAverageHelper(data, z, y, x, smoothLength, "x");
@@ -346,15 +359,25 @@ public class thresholdStandardDev {
 	}
 	
 	public static double[][][] movingAverageHelper(double[][][] data, int a, int b, int c, int smoothLength, String dimension) {
-		for (int i = 1; i < a; i++) {
-			for (int j = 1; j < b; j++) { 
-				for (int k = 1; k < c - 1; k++) {
-					if (dimension.equals("x")) {
-						data[i][j][k] = (data[i][j][k-1] + data[i][j][k] + data[i][j][k+1])/3; 
+		for (int i = smoothLength; i < a; i++) {
+			for (int j = smoothLength; j < b; j++) { 
+				for (int k = smoothLength; k < c - smoothLength; k++) {
+					int newData = 0;
+					if (dimension.equals("x")) {			
+						for (int l = 0; l < smoothLength; l++) {
+							newData += (data[i][j][k-l] + data[i][j][k+l]);
+						}
+						data[i][j][k] = (newData + data[i][j][k])/((smoothLength*2)+1); //data[i][j][k] = (data[i][j][k-1] + data[i][j][k] + data[i][j][k+1])/3; 
 					} else if (dimension.equals("y")) {
-						data[i][k][j] = (data[i][k-1][j] + data[i][k][j] + data[i][k+1][j])/3;
+						for (int l = 0; l < smoothLength; l++) {
+							newData += (data[i][k-l][j] + data[i][k+1][j]);
+						}
+						data[i][k][j] = (newData + data[i][k][j])/((smoothLength*2)+1); //data[i][k][j] = (data[i][k-1][j] + data[i][k][j] + data[i][k+1][j])/3;					
 					} else if (dimension.equals("z")) {
-						data[k][j][i] = (data[k-1][j][i] + data[k][j][i] + data[k+1][j][i])/3;
+						for (int l = 0; l < smoothLength; l++) {
+							newData += (data[k-l][j][i] + data[k+l][j][i]);
+						}
+						data[k][j][i] = (newData + data[k][j][i])/((smoothLength*2)+1); //data[k][j][i] = (data[k-1][j][i] + data[k][j][i] + data[k+1][j][i])/3;
 					} else {
 						System.out.println("We shouldn't reach this statement.");
 					}
@@ -362,5 +385,13 @@ public class thresholdStandardDev {
 			}
 		}
 		return data;
+	}
+	
+	public static double round(double val, int places) {
+	    if (places < 0) throw new IllegalArgumentException();
+	    long factor = (long) Math.pow(10, places);
+	    val = val * factor;
+	    long tmp = Math.round(val);
+	    return (double) tmp / factor;
 	}
 }

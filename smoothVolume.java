@@ -13,7 +13,7 @@ public class smoothVolume {
 	
 	public static void main(String[] args) throws IOException {
 			
-		STUDY = args[0];		
+		/**STUDY = args[0];		
 		SUBJECT = args[1];
 		INPUT_PATH = LOCALPATH + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
 		OUTPUT_PATH = LOCALPATH + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
@@ -27,27 +27,31 @@ public class smoothVolume {
 		Nifti1Dataset outputNifti = new Nifti1Dataset(OUTPUT_PATH + args[3]);
 		outputNifti.readHeader();
 		outputNifti.writeVol(ORIG_DATA, (short) 0);
-		runArgs(nds, outputNifti);
+		runArgs(outputNifti);*/
 		
 	}
 	
-	public static void runArgs(Nifti1Dataset nds, Nifti1Dataset outputNifti) throws IOException {
+	public static void runArgs(Nifti1Dataset inputNifti) throws IOException {
+		
+		inputNifti.readHeader();
 		
 		//set boundary matrix
-		writeBoundaries(nds);
+		writeBoundaries(inputNifti);
+		
+		//data = inputNifti.readDoubleVol((short) 0);
 		
 		// smooth volume
-		outputNifti.writeVol(thresholdStandardDev.movingAverage(outputNifti.readDoubleVol((short) 0), 1), (short) 0);
+		inputNifti.writeVol(thresholdStandardDev.movingAverage(inputNifti.readDoubleVol((short) 0), 2), (short) 0);
 
-		//smoothNifti.writeVol(erode(smoothNifti.readDoubleVol((short) 0), 15, 7, false, true, false, true, false), (short)0);
+		inputNifti.writeVol(erode(inputNifti.readDoubleVol((short) 0), 15, 13, true, true, true, true, true), (short)0);
 		//smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
-		//smoothNifti.writeVol(thresholdStandardDev.findGradient(smoothNifti.readDoubleVol((short) 0), true, false, true, 2, 3, 9, true, true), (short)0);
+		inputNifti.writeVol(thresholdStandardDev.findGradient(inputNifti.readDoubleVol((short) 0), true, true, true, 2, 3, 17, true, true), (short)0);
 
-		////smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
+		inputNifti.writeVol(cleanUp(inputNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
 		//smoothNifti.writeVol(erode(smoothNifti.readDoubleVol((short) 0), 20, 7, true, false, true, false, true), (short) 0);
 
 		////smoothNifti.writeVol(thresholdStandardDev.findGradient(smoothNifti.readDoubleVol((short)0), false, true, false, 1.0, 4, true, true), (short)0);
-		outputNifti.writeVol(cleanUp(outputNifti.readDoubleVol((short)0), 2, true, true, true), (short) 0);
+		//outputNifti.writeVol(cleanUp(outputNifti.readDoubleVol((short)0), 2, true, true, true), (short) 0);
 		//smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 2, true, true, true), (short) 0);
 	}
 	
@@ -63,6 +67,15 @@ public class smoothVolume {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param data
+	 * @param erode
+	 * @param lowBound
+	 * @param doX, doY, doZ
+	 * @param firstHalf, secondHalf
+	 * @return
+	 */
 	public static double[][][] erode(double[][][] data, int erode, int lowBound, 
 			boolean doX, boolean doY, boolean doZ, boolean firstHalf, boolean secondHalf) {
 		
@@ -81,6 +94,15 @@ public class smoothVolume {
 		
 	}
 	
+	/**
+	 * 
+	 * @param data
+	 * @param erode
+	 * @param doX
+	 * @param doY
+	 * @param doZ
+	 * @return
+	 */
 	public static double[][][] cleanUp(double[][][] data, int erode, boolean doX, boolean doY, boolean doZ) {
 		
 		int x = data[0][0].length; int y = data[0].length; int z = data.length; // fix from being [0] at some point

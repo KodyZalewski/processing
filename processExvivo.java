@@ -2,7 +2,7 @@
 import java.io.*;
 import java.util.*;
 //import java.util.zip.*;
-//import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPInputStream;
 //import java.util.zip.GZIPOutputStream;
 
 /**
@@ -34,58 +34,73 @@ import java.util.*;
 
 public class processExvivo {
 	
-	public static String inputFile, outputFile;
-	public static String LOCALPATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1260/TX1260_FREESURFER/mri/orig/";
-	public static String OUTPUT_PATH = "/home/ns-zalewk/Desktop/memorycube/EXVIVO/TX1260/TX1260_FREESURFER/mri/orig/";
+	public static String STUDY, SUBJECT; 
+	public static String USERID = System.getenv("USER");
+	public static String LOCALPATH, OUTPUT_PATH;
 	public static String SCANNAME = "";
-	public static double data[][][];
-	public static int[][] dimBounds;
+	
+	public static void setGlobal(String[] args) {
+		STUDY = args[0];
+		SUBJECT = args[1];
+		LOCALPATH = "/home/" + USERID + "/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
+		OUTPUT_PATH =  "/home/" + USERID + "/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
+	}
 	
 	public static void main(String args[]) throws IOException {
 		
-		inputFile = args[0];
-		outputFile = args[1];
-
+		setGlobal(args);
+		String inputFile = args[2];
+		String outputFile = args[3];
 		checkArgs(args);
-		
-		/**TODO: Is time-course *always* necessary for opening nifti scan?
-		// data = inputNifti.readDoubleVol(Short.parseShort(args[4])); // timecourse // 
-		
-		// TODO: read and look for the nifti file, if it's in .gz compressed format, gunzip it, if gunzip isn't installed,
-		prompt the client to download it
-		if () {
-			GZIPInputStream unzipFile = new GZIPInputStream();
+			
+		if (!checkPackage()) {
+			System.out.println("Gunzip is not installed! ");
+			System.out.println("From command line for Debian/Ubuntu users: 'sudo apt install gunzip' ");
+			System.out.println("Exiting program.");
+			System.exit(1);
 		}
-		**/
 		
-		Nifti1Dataset inputNifti = new Nifti1Dataset(args[0]);
-		//Nifti1Dataset inputNifti = new Nifti1Dataset(LOCALPATH + args[0]);
-		
-		inputNifti.readHeader();
-		
-		data = readNifti.dataParse(inputNifti, 0);
+		// read the input nifti1, copy data, unzip if needed
+		Nifti1Dataset inputNifti = new Nifti1Dataset(LOCALPATH + inputFile);
 		
 		if (inputNifti.exists()) {
-			System.out.println("Nifti file has readable header and data.");
+			System.out.println("Input nifti file has readable header and data.");
 		} else {
 			System.out.println("Nifti file does not have usable header or data.");
 			System.exit(1);
 		}
 		
-		data = smoothVolume.erode(data, 5, 1, true, true, true);
+		inputNifti.readHeader();
 		
-		//data = smoothVolume.writeLines(data, 20);
+		if (inputFile.endsWith(".gz")) {
+			
+			/**TODO: Is time-course *always* necessary for opening nifti scan? only do so if it's in .gz format
+			// data = inputNifti.readDoubleVol(Short.parseShort(args[4])); // timecourse // 
+			**/
+			
+			String inputPath = LOCALPATH + inputFile;
+			inputFile = inputFile.substring(0, inputFile.length() - 3);  //removes ".gz" extension
+			String unzippedPath = LOCALPATH + inputFile;
+			
+			gunzip(inputPath, unzippedPath);
+			inputNifti = new Nifti1Dataset(LOCALPATH + inputFile);
+			inputNifti.readHeader();
+			
+		}
 		
-		//dimBounds = readNifti.readNiftiFinder(inputNifti, data);
+		// new nifti-1 dataset to copy to
+		Nifti1Dataset outputNifti = new Nifti1Dataset(OUTPUT_PATH + outputFile);
 		
-		//outputFile = OUTPUT_PATH + outputFile;
-		
-		writeNifti.writeNiftiOutput(inputNifti, outputFile, data);
-		
-		// need to redirect output to LOCALPATH
-		Nifti1Dataset outputNifti = new Nifti1Dataset(outputFile);
+		if (!outputNifti.exists()) {
+			String[] arr = new String[3]; arr[0] = "copy"; arr[1] = (LOCALPATH + inputFile); arr[2] = (OUTPUT_PATH + outputFile);
+			TestNifti1Api.main(arr);
+		}
 		
 		outputNifti.readHeader();
+		//outputNifti.writeVol(inputNifti.readDoubleVol((short) 0),(short) 0);
+		
+		// perform data manipulation
+		smoothVolume.runArgs(outputNifti);
 		
 		if (outputNifti.exists()) {
 			System.out.print("File sucessfully written.");
@@ -95,13 +110,18 @@ public class processExvivo {
 	
 		System.exit(0);
 	}
-		
+	
 	/**
 	 * @param args are string to give to the program and allow the client input when no other arguments are specified. 
 	 * Otherwise the program uses the given nifti file name and path for processing. 
 	 */
 	public static void checkArgs(String[] args) {
-		if (args.length < 1) {
+		if (args.length == 4) {
+			
+			System.out.println("The local path is: " + LOCALPATH);
+			System.out.println("The output path is: " + OUTPUT_PATH);
+			
+		} else if (args.length > 0 && args.length < 4) { 
 			
 			Scanner console = new Scanner(System.in);
 			System.out.println("Would you like to input a new scan/path to denote for processing? (yes/no) : ");
@@ -129,10 +149,52 @@ public class processExvivo {
 			}
 			
 		} else {
-
-			System.out.println("Using " + LOCALPATH + " as path.");
-			System.out.println("Using " + args[0] + " as input scan.");
-			return;
+			System.out.println("Illegal number of arguments.");
+			System.out.println("processExvivo <STUDY> <SUBJECT> <input scan> <output scan>");
+			System.exit(1);
 		}
-	}	
+	}
+	
+	/**
+	 * @param inputFile is .nii.gz passed to be unzipped
+	 * @param outputFile is the unzipped .nii/nifti1 format file 
+	 * @throws IOException
+	 */
+	public static void gunzip(String inputFile, String outputFile) throws IOException {
+		try {
+			
+			File newFile = new File(outputFile);
+			
+			if (!newFile.exists()) {
+				String[] arr = new String[3]; arr[0] = "copy"; arr[1] = inputFile; arr[2] = outputFile;
+				TestNifti1Api.main(arr); // utilizes code from testnifti1api, separate class at some point? 
+			}
+			
+			FileOutputStream fos = new FileOutputStream(newFile);
+			FileInputStream fis = new FileInputStream(inputFile);
+			GZIPInputStream gis = new GZIPInputStream(fis);
+				
+			int len;
+			byte[] buffer = new byte[1024]; 		
+			while ((len = gis.read(buffer)) != -1) {
+				fos.write(buffer, 0, len);
+			}
+			
+			fos.close();
+			gis.close();
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	// We can only check if a class from a package exists, not the package itself
+	private static boolean checkPackage() {
+		try {
+			Class.forName("java.util.zip.GZIPInputStream");
+			return true;
+		} catch (Exception e) {
+			return false; 
+		}
+	}
 }
