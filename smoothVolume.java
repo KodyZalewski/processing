@@ -69,12 +69,12 @@ public class smoothVolume {
 	
 	/**
 	 * 
-	 * @param data
-	 * @param erode
-	 * @param lowBound
-	 * @param doX, doY, doZ
-	 * @param firstHalf, secondHalf
-	 * @return
+	 * @param data is nifti intensity data in 3D matrix double format
+	 * @param erode is the extent (as integer) to which voxels should be eroded from the edge of the scan
+	 * @param lowBound is the lowest intensity threshold the algoritm should hit before it stops
+	 * @param doX, doY, doZ 
+	 * @param firstHalf, secondHalf are the halves of each dimension to be eroded toward the center. 
+	 * @return eroded mri intensity data as 3D matrix in double format
 	 */
 	public static double[][][] erode(double[][][] data, int erode, int lowBound, 
 			boolean doX, boolean doY, boolean doZ, boolean firstHalf, boolean secondHalf) {
