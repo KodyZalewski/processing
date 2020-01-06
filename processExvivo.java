@@ -1,7 +1,6 @@
 
 import java.io.*;
 import java.util.*;
-//import java.util.zip.*;
 import java.util.zip.GZIPInputStream;
 //import java.util.zip.GZIPOutputStream;
 
@@ -17,8 +16,7 @@ import java.util.zip.GZIPInputStream;
  * 
  * The program only requires the input of a single T1 contrast nifti-1 format scan output will be separate from the original scan and 
  * will not overwrite existing data. It is largely assumed that the client is using this on a Linux distribution and the paths and tools 
- * used herein are functional on a Linux OS.
- * 
+ * used herein are functional on a Linux OS. 
  * TODO: Incorporate the ability to process other scan formats on multiple OSs too. 
  * 
  * This program extensively relies on the Nifti-1 java libraries written by Kate Fissell at the U. of Pittsburgh and wouldn't 
@@ -92,15 +90,14 @@ public class processExvivo {
 		Nifti1Dataset outputNifti = new Nifti1Dataset(OUTPUT_PATH + outputFile);
 		
 		if (!outputNifti.exists()) {
-			String[] arr = new String[3]; arr[0] = "copy"; arr[1] = (LOCALPATH + inputFile); arr[2] = (OUTPUT_PATH + outputFile);
-			TestNifti1Api.main(arr);
+			copyNifti(inputNifti, OUTPUT_PATH + outputFile);
 		}
 		
 		outputNifti.readHeader();
 		//outputNifti.writeVol(inputNifti.readDoubleVol((short) 0),(short) 0);
 		
 		// perform data manipulation
-		smoothVolume.runArgs(outputNifti);
+		trimNifti.runFunctions(outputNifti, true, true, true, true, 1);
 		
 		if (outputNifti.exists()) {
 			System.out.print("File sucessfully written.");
@@ -153,6 +150,27 @@ public class processExvivo {
 			System.out.println("processExvivo <STUDY> <SUBJECT> <input scan> <output scan>");
 			System.exit(1);
 		}
+	}
+	
+	/**
+	 * 		
+	 * @param inputNifti
+	 * @param niftiCopy
+	 */
+	public static void copyNifti(Nifti1Dataset inputNifti, String niftiCopy) {
+		byte[] b;
+		try {
+			inputNifti.readHeader();
+			b = inputNifti.readData();
+			inputNifti.setHeaderFilename(niftiCopy);
+			inputNifti.setDataFilename(niftiCopy);
+			inputNifti.writeHeader();
+			inputNifti.writeData(b);
+		}
+		catch (IOException ex) {
+			System.out.println("\nCould not copy nifti to "+niftiCopy+": "+ex.getMessage());
+		}
+
 	}
 	
 	/**

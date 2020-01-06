@@ -31,30 +31,6 @@ public class smoothVolume {
 		
 	}
 	
-	public static void runArgs(Nifti1Dataset inputNifti) throws IOException {
-		
-		inputNifti.readHeader();
-		
-		//set boundary matrix
-		writeBoundaries(inputNifti);
-		
-		//data = inputNifti.readDoubleVol((short) 0);
-		
-		// smooth volume
-		inputNifti.writeVol(thresholdStandardDev.movingAverage(inputNifti.readDoubleVol((short) 0), 2), (short) 0);
-
-		inputNifti.writeVol(erode(inputNifti.readDoubleVol((short) 0), 15, 13, true, true, true, true, true), (short)0);
-		//smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
-		inputNifti.writeVol(thresholdStandardDev.findGradient(inputNifti.readDoubleVol((short) 0), true, true, true, 2, 3, 17, true, true), (short)0);
-
-		inputNifti.writeVol(cleanUp(inputNifti.readDoubleVol((short)0), 1, true, true, true), (short) 0);
-		//smoothNifti.writeVol(erode(smoothNifti.readDoubleVol((short) 0), 20, 7, true, false, true, false, true), (short) 0);
-
-		////smoothNifti.writeVol(thresholdStandardDev.findGradient(smoothNifti.readDoubleVol((short)0), false, true, false, 1.0, 4, true, true), (short)0);
-		//outputNifti.writeVol(cleanUp(outputNifti.readDoubleVol((short)0), 2, true, true, true), (short) 0);
-		//smoothNifti.writeVol(cleanUp(smoothNifti.readDoubleVol((short)0), 2, true, true, true), (short) 0);
-	}
-	
 	// sets the boundaries for a given scan, takes boolean data and uses dimensions of desired scan
 	public static void writeBoundaries(Nifti1Dataset nds) {
 		boundaries = new boolean[nds.ZDIM][nds.YDIM][nds.XDIM];

@@ -1,6 +1,3 @@
-
-
-
 public class thresholdStandardDev {
 	
 	public static double LINEVAL = 0; // for first half of the scan
@@ -45,7 +42,6 @@ public class thresholdStandardDev {
 		// TODO: Double-check that the anatomy corresponds with the x, y, z dimensions
 		// UPDATE: Y and Z are swapped I guess, fix at some point, not critical right now as long as it works
 		// Will be necessary to address if this is ever published so as not to confuse the client.
-		
 		// anterior and posterior are mixed up, this could also be b/c the scans are in an odd orientation
 		
 		System.out.println("Average change in each dimension: left = " + round(AVGDELTA[0],2) + " right = " + round(AVGDELTA[1],2) + " dorsal = " + round(AVGDELTA[2],2) + 
@@ -338,6 +334,41 @@ public class thresholdStandardDev {
 			}
 		}
 		return voxelBoundary;
+	}
+	
+	/**
+	 * Finds the total average of a nifti dataset for all non-zero voxels
+	 */
+	public static double findTotalAverage(double[][][] data) {
+		double avg = 0;
+		int counter = 0;
+		for (int i = 0; i < data.length; i++) {		
+			for (int j = 0; j < data[i].length; j++) {
+				for (int k = 0; k < data[i][j].length; k++) {
+					if (data[i][j][k] != 0) {
+						avg = avg+=data[i][j][k];
+						counter++;
+					}
+				}
+			}
+		}
+		return avg/counter;
+	}
+	
+	public static void phaseEncodeNorm(double[][][] data, double average1, double average2) {
+		for (int i = 0; i < data.length; i++) {
+			for(int j = 0; j < data[i].length; j++) {
+				if (average1 < average2) { 
+					for (int k = 0; k < data[i][j].length/2; k++) {
+						
+					}
+				} else {
+					//for (int k = c - 1; k > (c - c/bound); k--) {
+						
+					//}
+				}
+			}
+		}
 	}
 	
 	/**
