@@ -1,17 +1,17 @@
+
 public class thresholdStandardDev {
 	
-	public static double LINEVAL = 0; // for first half of the scan
-	public static double LINEVAL2 = 0;// for the opposite half of each dimension of the scan
-	public static int COUNT = 0;
-	
-	// global variable storing avgs of each half: [X left, X right, Y superior, Y inferior, Z anterior, Z posterior]
-	public static double[] AVGDELTA = new double[6]; 
+	public static double LINEVAL = 0; // tracks total intensity for the first half of the scan
+	public static double LINEVAL2 = 0;// tracks total intensity opposite half of each dimension of the scan
+	public static int COUNT = 0; // keeps track of the number of non-zero voxels
+	public static double[] AVGDELTA = new double[6]; // stores avgs of each half: [X left, X right, Y superior, Y inferior, Z anterior, Z posterior]
 
-	/** @Author KJZ 12.22.2019
-	 * @Params Takes nifti scan data as 3-dimensional matrix of doubles. 
-	 * @param Takes x, y, z dimensions as boolean. 
-	 * @param Takes standard deviation as a double val, 
-	 * @param Lowering the standard dev threshold decreases the boundary at which the voxels are masked out.
+	/** 
+	 * @author KJZ 12.22.2019
+	 * @param Takes nifti scan data as 3D matrix of double[][][]. 
+	 * @param Takes x, y, z dimension to be processed (true) or omitted (false) as boolean. 
+	 * @param Takes standard deviation as a double val. Lowering the standard dev threshold lowers the boundary that the voxels are
+	 *  masked out, assuming that the scan is a T1 weighted volume. TODO: Allow inversion to work with T2-weighted scans. 
 	 * @param Takes bound as int, corresponds to how the scan should be divided up to calculate the standard dev. (e.g, 2 = halves, 3 = thirds etc)
 	 * @param Takes voxelBound as double, what intensity the gradient should halt calculation at. 
 	 * @returns the altered data passed to findGradient() as a matrix of doubles to be written to a new nifti scan.  
@@ -40,9 +40,8 @@ public class thresholdStandardDev {
 				XDIM, YDIM, ZDIM, bound, voxelBound, "z", stdev, firstHalf, secondHalf);
 		}
 		// TODO: Double-check that the anatomy corresponds with the x, y, z dimensions
-		// UPDATE: Y and Z are swapped I guess, fix at some point, not critical right now as long as it works
-		// Will be necessary to address if this is ever published so as not to confuse the client.
-		// anterior and posterior are mixed up, this could also be b/c the scans are in an odd orientation
+		// UPDATE: anterior and posterior are mixed up, this could also be b/c the scans are in an 
+		// odd orientation. Need to test this on a scan with normal orientation. 
 		
 		System.out.println("Average change in each dimension: left = " + round(AVGDELTA[0],2) + " right = " + round(AVGDELTA[1],2) + " dorsal = " + round(AVGDELTA[2],2) + 
 				" ventral = " + round(AVGDELTA[3],2) + " anterior = " + round(AVGDELTA[4],2) + " posterior = " + round(AVGDELTA[5],2));
@@ -50,23 +49,23 @@ public class thresholdStandardDev {
 	}
 	
 	
-	/** @author KJZ
-	 * @params Helper method for FindGradient takes scan data as 3-dimensional matrix of doubles. 
-	 * @params Takes int as a, b, c, corresponding to the dimensions of the scan. 
-	 * @params Takes a string as whether we are traversing the x, y, or z dimensions of the scan.
-	 * @returns 3-dimensional matrix. Columns of data correspond to the first and second halves of the
+	/** 
+	 * @author KJZ
+	 * @param Helper method for FindGradient takes scan data as 3-dimensional matrix of doubles. 
+	 * @param Takes int as a, b, c, corresponding to the dimensions of the scan. 
+	 * @param Takes a string as whether we are traversing the x, y, or z dimensions of the scan.
+	 * @returns 3D matrix of nifti data as double[][][]. Columns of data correspond to the first and second halves of the
 	 * scan being processed and contain a grid of gradients corresponding to each row of data.  
 	*/
-	// a, b and c are the dimensions used for traversing the scan
+
 	public static double[][][] findGradientHelper(double[][][] data, int a, int b, int c, int bound, String dimension) {
 
 		// two gradients for moving toward the center of the scan and two measures of averages for each dimension
 		double[][][] gradients = new double[2][a][b]; double[][][] averages = new double[2][a][b];
 
-		// for calculating the standard deviation of the last dimensional row
+		// for storing residuals to calculate the standard deviation of a row in each dimension
 		double[] residuals = new double[c/bound+1]; double[] residuals2 = new double[c/bound+1];
 		
-		// counter for traversing the scan and counting non-zero voxels
 		COUNT = 0;
 
 		for (int i = 0; i < a; i++) {
@@ -99,13 +98,14 @@ public class thresholdStandardDev {
 		return gradients;
 	}
 	
-	/** @params The original data as a 3-dimensional matrix of double values. 
-	 * The array of residuals for deriving the standard dev and average from. 
-	 * Forward or backward will equal 0 or 1 as int depending on which half of the scan dimension is being traversed.
-	 * i, j, k, locate the voxel value on the scan in the 3-dimensional matrix.
-	 * resid value is what half of the scan is where the value is being stored as int.
-	 * Dimension is the x, y, or z dimension of the scan as string.  
-	   @returns the gradient of the scan with the standard deviation at each voxel location 
+	/** 
+	 * @param Nifti scan data as a 3D matrix of double[][][] values. 
+	 * @param Array of residuals as double[] for deriving the standard dev and average from. 
+	 * @param Forward/backward will equal 0 or 1 as int depending on which half of the scan dimension is being traversed.
+	 * @param i, j, k, locate given voxel value on the scan in the 3D matrix at data[i][j][k] e.g..
+	 * @param residValue is what half of the scan is where the value is being stored as int.
+	 * @param Dimension denotes x, y, or z dimension of the scan as string.  
+	 * @returns The gradient of the scan with the standard deviation at each voxel location.  
 	 */
 
 	public static double[] calcResiduals(double[][][] data, double[] residuals, 
@@ -154,9 +154,10 @@ public class thresholdStandardDev {
 	}
 
 
-	/** @params residuals are single double array of voxels from mri data, 
-	 *  the average intensity of the line of voxel data as double
-	 *  @returns the standard deviation of the voxel residuals
+	/** 
+	 * @param residuals are single double array of voxels from mri data, 
+	 * @param The average intensity of the line of voxel data as double
+	 * @returns the standard deviation of the voxel residuals
 	 */
 	public static double standardDeviation(double[] residuals, double average) {
 		
@@ -184,10 +185,11 @@ public class thresholdStandardDev {
 		return average/n;
 	}
 
-	/**@params Takes dimensions x, y, z as integers corresponding to a, b, and c. 
-	 * Takes which dimension is being measured (x,y,z) as string
-	 * Bound is the dimension by which the scan is divided into (halves = 2, thirds = 3 etc.) as int'
-	 * Sets the average change in dimension to the global array of averages AVGDELTA.
+	/**
+	 * @param Takes dimensions x, y, z as integers corresponding to a, b, and c. 
+	 * @param Takes which dimension is being measured (x,y,z) as string
+	 * @param Bound integer is the dimension by which the scan is divided into (halves = 2, thirds = 3 etc.) as int'
+	 * @result Sets the average change in dimension to the global array of averages AVGDELTA.
 	 */
 	public static void setAvgDelta(int a, int b, int c, String dimension, int bound) {
 		
@@ -210,7 +212,8 @@ public class thresholdStandardDev {
 
 	//TODO: break up everything below this line into it's own separate .java file at some point
 	
-	/** @author KJZ
+	/** 
+	 * @author KJZ
 	 * @param data is double 3D matrix of T1 mri data.
 	 * @param is the mapping of the avg change in each dimension.
 	 * @param a, b, c as int correspond to the desired dimensions to traverse the scan.
@@ -223,8 +226,7 @@ public class thresholdStandardDev {
 	 * 
 	 * @return double as 3D matrix to be written to a new scan with outlier values thresholded out */
 	
-	// add average[][][] grid at some point to arguments to correspond with the stdev grid.
-	// removed Math.abs(), maybe this will work better
+	// add average[][][] grid at some point to arguments to correspond with the stdev grid
 	
 	public static double[][][] traverseData(double[][][] data, double gradient[][][], int a, int b, int c, int bound, 
 			double voxelBound, String dimension, double stdev, boolean firstHalf, boolean secondHalf) {
@@ -333,7 +335,8 @@ public class thresholdStandardDev {
 	}
 	
 	/**
-	 * Finds the total average of a nifti dataset for all non-zero voxels
+	 * @param takes 3D nifti data matrix as double[][][]
+	 * @result Finds the total average of a nifti dataset for all non-zero voxels
 	 */
 	public static double findTotalAverage(double[][][] data) {
 		double avg = 0;
@@ -348,9 +351,12 @@ public class thresholdStandardDev {
 				}
 			}
 		}
-		return avg/counter;
+		return (avg/counter);
 	}
 	
+	/**
+	 * @param data
+	 */
 	public static void outerAverage(double[][][] data) {
 		for (int i = 0; i < data.length; i++) {
 			for(int j = 0; j < data[i].length; j++) {
@@ -360,6 +366,11 @@ public class thresholdStandardDev {
 		}
 	}
 	
+	/**
+	 * @param data
+	 * @param average1
+	 * @param average2
+	 */
 	public static void phaseEncodeNorm(double[][][] data, double average1, double average2) {
 		for (int i = 0; i < data.length; i++) {
 			for(int j = 0; j < data[i].length; j++) {
@@ -378,53 +389,16 @@ public class thresholdStandardDev {
 	
 	/**
 	 * @author KJZ
-	 * @param Takes data as double 3D matrix, int a, b, c represent respective dimensions depending on which
-	 * dimension (passed as String) is being traversed, smoothLength denotes how many voxels along the dimension to incorporate
-	 * into smoothing (default is 1). Number of outliers is reduced across the scan. 
-	 * @return double 3D matrix to be written to a new scan as a smoothed volume.
+	 * @param val as double is the value to be rounded
+	 * @param places are the number of places the double should be rounded to
+	 * @return truncated double value 
 	 */
-	
-	public static double[][][] movingAverage(double[][][] data, int smoothLength) {
-	
-		int x = data[0][0].length; int y = data[0].length; int z = data.length; // fix from being [0] at some point
-		
-		data = movingAverageHelper(data, z, y, x, smoothLength, "x");
-		data = movingAverageHelper(data, z, x, y, smoothLength, "y");
-		data = movingAverageHelper(data, x, y, z, smoothLength, "z");
-		return data; 
-	}
-	
-	public static double[][][] movingAverageHelper(double[][][] data, int a, int b, int c, int smoothLength, String dimension) {
-		for (int i = smoothLength; i < a; i++) {
-			for (int j = smoothLength; j < b; j++) { 
-				for (int k = smoothLength; k < c - smoothLength; k++) {
-					int newData = 0;
-					if (dimension.equals("x")) {			
-						for (int l = 0; l < smoothLength; l++) {
-							newData += (data[i][j][k-l] + data[i][j][k+l]);
-						} 
-						data[i][j][k] = (newData + data[i][j][k])/((smoothLength*2)+1); 
-					} 
-					if (dimension.equals("y")) {
-						for (int l = 0; l < smoothLength; l++) {
-							newData += (data[i][k-l][j] + data[i][k+1][j]);
-						}
-						data[i][k][j] = (newData + data[i][k][j])/((smoothLength*2)+1); 				
-					} 
-					if (dimension.equals("z")) {
-						for (int l = 0; l < smoothLength; l++) {
-							newData += (data[k-l][j][i] + data[k+l][j][i]);
-						}
-						data[k][j][i] = (newData + data[k][j][i])/((smoothLength*2)+1); 
-					} 
-				}
-			}
-		}
-		return data;
-	}
-	
 	public static double round(double val, int places) {
-	    if (places < 0) throw new IllegalArgumentException();
+		
+	    if (places < 0) { 
+	    	throw new IllegalArgumentException();
+	    }
+	    
 	    long factor = (long) Math.pow(10, places);
 	    val = val * factor;
 	    long tmp = Math.round(val);
