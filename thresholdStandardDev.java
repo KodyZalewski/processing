@@ -27,15 +27,15 @@ public class thresholdStandardDev {
 		System.out.println("X, Y, Z Dimensions are: " + XDIM + " " + YDIM + " " + ZDIM);
 		
 		// matrices for storing the standard deviation for each row in a grid representing both sides of the scan
-		if (x == true) {
+		if (x) {
 			data = traverseData(data, findGradientHelper(data, ZDIM, YDIM, XDIM, bound, "x"), 
 				ZDIM, YDIM, XDIM, bound, voxelBound, "x", stdev, firstHalf, secondHalf);
 		}
-		if (y == true) {
+		if (y) {
 			data = traverseData(data, findGradientHelper(data, ZDIM, XDIM, YDIM, bound, "y"), 
 				ZDIM, XDIM, YDIM, bound, voxelBound, "y", stdev, firstHalf, secondHalf);
 		}
-		if (z == true) {
+		if (z) {
 			data = traverseData(data, findGradientHelper(data, XDIM, YDIM, ZDIM, bound, "z"), 
 				XDIM, YDIM, ZDIM, bound, voxelBound, "z", stdev, firstHalf, secondHalf);
 		}
@@ -72,7 +72,7 @@ public class thresholdStandardDev {
 		for (int i = 0; i < a; i++) {
 			for (int j = 0; j < b; j++) {
 				for (int k = 0; k < c/bound; k++) {
-					residuals = calcResiduals(data, residuals, 1, 0, i, j, k, k, dimension); 
+					residuals = calcResiduals(data, residuals, true, i, j, k, k, dimension); 
 					
 				}
 				
@@ -82,7 +82,7 @@ public class thresholdStandardDev {
 				
 				
 				for (int k = c - 1; k > (c - c/bound); k--) {
-					residuals2 = calcResiduals(data, residuals2, 0, 1, i, j, k-1, (c-k-1), dimension);
+					residuals2 = calcResiduals(data, residuals2, false, i, j, k-1, (c-k-1), dimension);
 					
 				}
 				COUNT = 0;
@@ -109,39 +109,41 @@ public class thresholdStandardDev {
 	 */
 
 	public static double[] calcResiduals(double[][][] data, double[] residuals, 
-			int forward, int backward, int i, int j, int k, int residValue, String dimension) {
+			boolean forward, int i, int j, int k, int residValue, String dimension) {
 
-		// TODO: fix forward/backward nonsense at some point
 		if (dimension.equals("x")) { // for x dimension
 			if (data[i][j][k] != 0) {	
-				if (forward == 1 && backward == 0) {
-					LINEVAL += (data[i][j][k+forward] - data[i][j][k-backward]);
-				} else if (forward == 0 && backward == 1) {
-					LINEVAL2 += (data[i][j][k+forward] - data[i][j][k-backward]);
+				if (forward) {
+					LINEVAL += (data[i][j][k+1] - data[i][j][k]);
+					residuals[COUNT] = (data[i][j][k+1] - data[i][j][k]);
+				} else {
+					LINEVAL2 += (data[i][j][k] - data[i][j][k-1]);
+					residuals[COUNT] = (data[i][j][k] - data[i][j][k-1]);
 				}
-				residuals[COUNT] = (data[i][j][k+forward] - data[i][j][k-backward]);
 				COUNT++;
 			}
 			
 		} else if (dimension.equals("y")) { // for y dimension
 			if (data[i][k][j] != 0) {
-				if (forward == 1 && backward == 0) {
-					LINEVAL += (data[i][k+forward][j] - data[i][k-backward][j]);
-				} else if (forward == 0 && backward == 1) {
-					LINEVAL2 += (data[i][k+forward][j] - data[i][k-backward][j]);
+				if (forward) {
+					LINEVAL += (data[i][k+1][j] - data[i][k][j]);
+					residuals[COUNT] = (data[i][k+1][j] - data[i][k][j]);
+				} else {
+					LINEVAL2 += (data[i][k][j] - data[i][k-1][j]);
+					residuals[COUNT] = (data[i][k][j] - data[i][k-1][j]);
 				}
-				residuals[COUNT] = (data[i][k+forward][j] - data[i][k-backward][j]);
 				COUNT++;
 			}
 			
 		} else if (dimension.equals("z")) { // for z dimension
 			if (data[k][j][i] != 0 ) {
-				if (forward == 1 && backward == 0) {
-					LINEVAL += (data[k+forward][j][i] - data[k-backward][j][i]);
-				} else if (forward == 0 && backward == 1) {
-					LINEVAL2 += (data[k+forward][j][i] - data[k-backward][j][i]);
-				}
-				residuals[COUNT] = (data[k+forward][j][i] - data[k-backward][j][i]);
+				if (forward) {
+					LINEVAL += (data[k+1][j][i] - data[k][j][i]);
+					residuals[COUNT] = (data[k+1][j][i] - data[k][j][i]);
+				} else {
+					LINEVAL2 += (data[k][j][i] - data[k-1][j][i]);
+					residuals[COUNT] = (data[k][j][i] - data[k-1][j][i]);
+				}	
 				COUNT++;
 			}
 			
@@ -231,10 +233,10 @@ public class thresholdStandardDev {
 
 		for (int i = 0; i < a; i++) {
 			for (int j = 0; j < b; j++) {
-				if (firstHalf == true) {
+				if (firstHalf) {
 					for (int k = 0; k < c/bound; k++) {
-						voxelBoundary = returnVoxel(data, gradient, 1, 0, i, j, k, dimension, stdev, voxelBound, voxelBoundary); 
-						if (voxelBoundary == true) {
+						voxelBoundary = returnVoxel(data, gradient, true, i, j, k, dimension, stdev, voxelBound, voxelBoundary); 
+						if (voxelBoundary) {
 							break;
 						} else {
 							data = replaceVoxel(data, i, j, k, dimension);
@@ -242,10 +244,10 @@ public class thresholdStandardDev {
 					}
 					voxelBoundary = false; 
 				}
-				if (secondHalf == true) {
+				if (secondHalf) {
 					for (int k = c - 1; k > (c - c/bound); k--) {
-						voxelBoundary = returnVoxel(data, gradient, 0, 1, i, j, k, dimension, stdev, voxelBound, voxelBoundary);
-						if (voxelBoundary == true) {
+						voxelBoundary = returnVoxel(data, gradient, false, i, j, k, dimension, stdev, voxelBound, voxelBoundary);
+						if (voxelBoundary) {
 							break; 
 						} else {
 							data = replaceVoxel(data, i, j, k, dimension); 
@@ -276,62 +278,56 @@ public class thresholdStandardDev {
 	// Assuming T1 weighted imaging with dark outer boundary, otherwise should be less-than the standard deviation
 	// note that stdev is also given as a negative value,
 	
-	public static boolean returnVoxel(double[][][] data, double[][][] gradient, int forward, int backward, int i, int j, int k, 
+	public static boolean returnVoxel(double[][][] data, double[][][] gradient, boolean forward, int i, int j, int k, 
 			String dimension, double stdev, double voxelBound, boolean voxelBoundary) {
 		
 		if (dimension.equals("x")) { // for x dimension data[i][j][k] != 0
-			if (forward == 1 && backward == 0) {
-				if (((data[i][j][k+forward] - data[i][j][k] - AVGDELTA[0]) / gradient[0][i][j]) > -stdev && data[i][j][k] > voxelBound) {
+			if (forward) {
+				if (((data[i][j][k+1] - data[i][j][k] - AVGDELTA[0]) / gradient[0][i][j]) > -stdev && data[i][j][k] > voxelBound) {
 					voxelBoundary = false; 
 				} else if (data[i][j][k] > 1) {
 					voxelBoundary = true;  
 				}
-			} else if (forward == 0 && backward == 1) {
-				if (((data[i][j][k-backward] - data[i][j][k] - AVGDELTA[1]) / gradient[1][i][j]) > -stdev && data[i][j][k] > voxelBound) {
+			} else {
+				if (((data[i][j][k-1] - data[i][j][k] - AVGDELTA[1]) / gradient[1][i][j]) > -stdev && data[i][j][k] > voxelBound) {
 					voxelBoundary = false;
 				} else if (data[i][j][k] > 1) {
 					voxelBoundary = true;  
 				}
-			} else {
-				System.out.println("we shouldn't reach this statement");
 			}
 		}
 
 		if (dimension.equals("y")) { // for y dimension data[i][k][j] != 0
-			if (forward == 1 && backward == 0) {
-				if ((data[i][k+forward][j] - data[i][k][j] - AVGDELTA[2] / gradient[0][i][j]) > -stdev && data[i][k][j] > voxelBound) {
+			if (forward) {
+				if ((data[i][k+1][j] - data[i][k][j] - AVGDELTA[2] / gradient[0][i][j]) > -stdev && data[i][k][j] > voxelBound) {
 					voxelBoundary = false;
 				} else if (data[i][k][j] > 1) {
 					voxelBoundary = true; 
 				}
-			} else if (forward == 0 && backward == 1) {
-				if ((data[i][k-backward][j] - data[i][k][j] - AVGDELTA[3] / gradient[1][i][j]) > -stdev && data[i][k][j] > voxelBound) {
+			} else {
+				if ((data[i][k-1][j] - data[i][k][j] - AVGDELTA[3] / gradient[1][i][j]) > -stdev && data[i][k][j] > voxelBound) {
 					voxelBoundary = false; 
 				} else if (data[i][k][j] > 1) {
 					voxelBoundary = true; 
 				}
-			} else {
-				System.out.println("we shouldn't reach this statement");
-			}
+			} 
 
 		}
 
 		if (dimension.equals("z")) { // for z dimension data[k][j][i] != 0
-			if (forward == 1 && backward == 0) {
-				if ((data[k+forward][j][i] - data[k][j][i] - AVGDELTA[4] / gradient[0][i][j]) > -stdev && data[k][j][i] > voxelBound) {
+			if (forward) {
+				if ((data[k+1][j][i] - data[k][j][i] - AVGDELTA[4] / gradient[0][i][j]) > -stdev && data[k][j][i] > voxelBound) {
 					voxelBoundary = false; 
 				}  else if (data[k][j][i] > 1 || data[k][j][i] < voxelBound) {
 					voxelBoundary = true; 
 				}
-			} else if (forward == 0 && backward == 1) {
-				if ((data[k-backward][j][i] - data[k][j][i] - AVGDELTA[5] / gradient[1][i][j]) > -stdev && data[k][j][i] > voxelBound) {
+			} else {
+				if ((data[k-1][j][i] - data[k][j][i] - AVGDELTA[5] / gradient[1][i][j]) > -stdev && data[k][j][i] > voxelBound) {
 					voxelBoundary = false; 
 				} else if (data[k][j][i] > 1) {
 					voxelBoundary = true; 
 				}
-			} else {
-				System.out.println("we shouldn't reach this statement");
-			}
+			} 
 		}
 		return voxelBoundary;
 	}
@@ -353,6 +349,15 @@ public class thresholdStandardDev {
 			}
 		}
 		return avg/counter;
+	}
+	
+	public static void outerAverage(double[][][] data) {
+		for (int i = 0; i < data.length; i++) {
+			for(int j = 0; j < data[i].length; j++) {
+				for (int k = 0; k < data[i][j].length/2; k++) {
+				}
+			}
+		}
 	}
 	
 	public static void phaseEncodeNorm(double[][][] data, double average1, double average2) {
@@ -397,21 +402,21 @@ public class thresholdStandardDev {
 					if (dimension.equals("x")) {			
 						for (int l = 0; l < smoothLength; l++) {
 							newData += (data[i][j][k-l] + data[i][j][k+l]);
-						}
-						data[i][j][k] = (newData + data[i][j][k])/((smoothLength*2)+1); //data[i][j][k] = (data[i][j][k-1] + data[i][j][k] + data[i][j][k+1])/3; 
-					} else if (dimension.equals("y")) {
+						} 
+						data[i][j][k] = (newData + data[i][j][k])/((smoothLength*2)+1); 
+					} 
+					if (dimension.equals("y")) {
 						for (int l = 0; l < smoothLength; l++) {
 							newData += (data[i][k-l][j] + data[i][k+1][j]);
 						}
-						data[i][k][j] = (newData + data[i][k][j])/((smoothLength*2)+1); //data[i][k][j] = (data[i][k-1][j] + data[i][k][j] + data[i][k+1][j])/3;					
-					} else if (dimension.equals("z")) {
+						data[i][k][j] = (newData + data[i][k][j])/((smoothLength*2)+1); 				
+					} 
+					if (dimension.equals("z")) {
 						for (int l = 0; l < smoothLength; l++) {
 							newData += (data[k-l][j][i] + data[k+l][j][i]);
 						}
-						data[k][j][i] = (newData + data[k][j][i])/((smoothLength*2)+1); //data[k][j][i] = (data[k-1][j][i] + data[k][j][i] + data[k+1][j][i])/3;
-					} else {
-						System.out.println("We shouldn't reach this statement.");
-					}
+						data[k][j][i] = (newData + data[k][j][i])/((smoothLength*2)+1); 
+					} 
 				}
 			}
 		}

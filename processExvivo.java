@@ -80,7 +80,7 @@ public class processExvivo {
 			inputFile = inputFile.substring(0, inputFile.length() - 3);  //removes ".gz" extension
 			String unzippedPath = LOCALPATH + inputFile;
 			
-			gunzip(inputPath, unzippedPath);
+			gunzip(inputNifti, inputPath, unzippedPath);
 			inputNifti = new Nifti1Dataset(LOCALPATH + inputFile);
 			inputNifti.readHeader();
 			
@@ -94,10 +94,15 @@ public class processExvivo {
 		}
 		
 		outputNifti.readHeader();
-		//outputNifti.writeVol(inputNifti.readDoubleVol((short) 0),(short) 0);
+		
+		// *** EDIT THESE LINE FOR CHANGING WHICH FUNCTIONS TO USE ***
+		boolean smooth = false; 
+		boolean erosion = true; 
+		boolean gradientCorrection = false; 
+		boolean clean = true;
 		
 		// perform data manipulation
-		trimNifti.runFunctions(outputNifti, true, true, true, true, 1);
+		trimNifti.runFunctions(outputNifti, smooth, erosion, gradientCorrection, clean, 1);
 		
 		if (outputNifti.exists()) {
 			System.out.print("File sucessfully written.");
@@ -178,18 +183,17 @@ public class processExvivo {
 	 * @param outputFile is the unzipped .nii/nifti1 format file 
 	 * @throws IOException
 	 */
-	public static void gunzip(String inputFile, String outputFile) throws IOException {
+	public static void gunzip(Nifti1Dataset inputFile, String inputPath, String outputFile) throws IOException {
 		try {
 			
 			File newFile = new File(outputFile);
 			
 			if (!newFile.exists()) {
-				String[] arr = new String[3]; arr[0] = "copy"; arr[1] = inputFile; arr[2] = outputFile;
-				TestNifti1Api.main(arr); // utilizes code from testnifti1api, separate class at some point? 
+				copyNifti(inputFile, outputFile);
 			}
 			
 			FileOutputStream fos = new FileOutputStream(newFile);
-			FileInputStream fis = new FileInputStream(inputFile);
+			FileInputStream fis = new FileInputStream(inputPath);
 			GZIPInputStream gis = new GZIPInputStream(fis);
 				
 			int len;
