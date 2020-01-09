@@ -228,7 +228,7 @@ public class smoothVolume {
 		for (int i = 0; i < a; i++) {
 			for (int j = 0; j < b; j++) {
 				while (k < c/2 && Math.abs(k) > 0) {
-				
+					
 					if (dim.equals("x") && data[i][j][Math.abs(k)] == 0 && data[i][j][Math.abs(k)+incr] != 0) {
 						data = cleanUpHelper2(data, erode, i, j, Math.abs(k), incr, dim);
 						break;
@@ -399,4 +399,94 @@ public class smoothVolume {
 		}
 		return data;
 	}
+	
+	// ------------------------------------------------------------ //
+	
+	public static double pullData(double[][][] data, String dim, int i, int j, int k, int incr) {
+		if (dim.equals("x")) {
+			return data[i][j][k+incr];
+		} else if (dim.equals("y")) {
+			return data[i][k+incr][j];
+		} else if (dim.equals("z")) {
+			return data[k+incr][j][i];
+		} else {
+			System.out.println("Error, no value found, returning 0");
+			return 0.0;
+		}
+	}
+	
+	public static double[][][] pushData(double[][][] data, String dim, int i, int j, int k, int incr, double push) {
+		if (dim.equals("x")) {
+			data[i][j][k+incr] = push;
+		} else if (dim.equals("y")) {
+			data[i][k+incr][j] = push;
+		} else if (dim.equals("z")) {
+			data[k+incr][j][i] = push;
+		}
+		return data;
+	}
+	
+	public static boolean pullBounds(String dim, int i, int j, int k, int incr) {
+		if (dim.equals("x")) {
+			return BOUNDARIES[i][j][k+incr];
+		} else if (dim.equals("y")) {
+			return BOUNDARIES[i][k+incr][j];
+		} else if (dim.equals("z")) {
+			return BOUNDARIES[k+incr][j][i];
+		} else {
+			System.out.println("Error, no value found, returning false");
+			return false;
+		}
+	}
+	
+	public static void pushBounds(String dim, int i, int j, int k, int incr, boolean value) {
+		if (dim.equals("x")) {
+			BOUNDARIES[i][j][k+incr] = value;
+		} else if (dim.equals("y")) {
+			BOUNDARIES[i][k+incr][j] = value;
+		} else if (dim.equals("z")) {
+			BOUNDARIES[k+incr][j][i] = value;
+		}
+	}
+	
+	
+	public static double[][][] testErode(double[][][] data, String dim, int erode, int lowBound, int a, int b, int c, boolean half) {
+		
+		if (erode > c/2) {
+			System.out.println("ERROR: Erosion cannot be greater than half of the desired dim ension. (" + c/2 + ")");
+			return data;
+		}
+		
+		int distalLength; int incr; // the last dim loop (k) will return to this value after every iteration
+		if (half) {
+			distalLength = 0; incr = 1;
+		} else {
+			distalLength = -(c); incr = -1;
+		}
+		
+		int k = distalLength; double val;
+		
+		for (int i = 0; i < a; i++) {
+			for (int j = 0; j < b; j++) {
+				while (k < c/2 && Math.abs(k) > 0) {
+					if (pullData(data, dim, i, j, Math.abs(k), 0) == 0 && pullData(data, dim, i, j, Math.abs(k), incr) > 0.99) {
+						for (int count = 0; count < erode; count++) {
+							
+							val = pullData(data, dim, i, j, Math.abs(k), count);
+							if (val < lowBound && val > 0.99) {
+								pullBounds(dim, i, j, k, incr);
+								break; 
+							} else if (val != 0 && val > lowBound && !pullBounds(dim, i, j, k, incr)) {
+								data = pushData(data, dim, i, j, Math.abs(k), count, 0);
+							}
+						}
+						break;
+					}
+					k++;
+				}
+			}
+		}
+		return data;
+	}
+	
 }
