@@ -2,7 +2,7 @@
 import java.io.IOException;
 
 /**
- * @author ns-zalewk
+ * @author KJZ
  *
  * This class organizes the arguments for editing and trimming the exvivo scan. 
  * TODO: Refine this to dynamically adjust the scaling and thresholding of the scan at some point. 
@@ -10,16 +10,24 @@ import java.io.IOException;
 
 public class trimNifti {
 	
-	public static void runFunctions(Nifti1Dataset inputNifti, boolean smooth, boolean erosion, boolean gradCorr, boolean clean, int iterations) throws IOException {
+	public static void runFunctions(Nifti1Dataset inputNifti, boolean smooth, boolean erosion, boolean gradCorr, boolean patchOvershots, boolean clean, int iterations) throws IOException {
 		inputNifti.readHeader();
 		
+		
+		/** put default parameters here at some point
+		 * int erode; // number of voxels to erode from the edges of the scan
+		 * int lowBound; // lowest voxel intensity to stop at
+		 * int length // depth to traverse scan in correcting over-shots of the pial surface
+		 * int stdev; // standard deviation cut-off for outliers when thresholding
+		 * int voxelBound; // same as lowBound for stdev thresholding
+		*/
+		
 		//set boundary matrix
-		smoothVolume.writeBoundaries(inputNifti);
 		double average = thresholdStandardDev.findTotalAverage(inputNifti.readDoubleVol((short)0)); // TODO: adjust values below based on average
 		
 		
 		if (smooth) {
-			inputNifti.writeVol(thresholdStandardDev.movingAverage(inputNifti.readDoubleVol((short) 0), 2), (short) 0);
+			inputNifti.writeVol(smoothVolume.movingAverage(inputNifti.readDoubleVol((short) 0), 2), (short) 0);
 		}
 		
 		int counter = 0;
@@ -32,8 +40,12 @@ public class trimNifti {
 				inputNifti.writeVol(thresholdStandardDev.findGradient(inputNifti.readDoubleVol((short) 0), true, true, true, 2, 3, 17, true, true), (short)0);
 			}
 			
+			if (patchOvershots) {
+				inputNifti.writeVol(smoothVolume.patchOvershots(inputNifti.readDoubleVol((short) 0), 3, 2, true, true, true), (short)0);
+			}
+			
 			if (clean) {
-				inputNifti.writeVol(smoothVolume.cleanUp(inputNifti.readDoubleVol((short)0), 1, true, true, true, true), (short) 0);
+				inputNifti.writeVol(smoothVolume.cleanUp(inputNifti.readDoubleVol((short)0), 3, true, true, true, true), (short) 0);
 			}
 			counter++;
 		}

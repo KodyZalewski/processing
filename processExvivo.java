@@ -5,7 +5,7 @@ import java.util.zip.GZIPInputStream;
 //import java.util.zip.GZIPOutputStream;
 
 /**
- * @author Kody Zalewski 11.1.2019
+ * @author KJZ 11.1.2019
  * 
  * processExvivo is a program for taking an exvivo scan and pre-processing it to make it available for volumetric analysis 
  * (largely by Freesurfer). Exvivo scans have an extensive amount of non-zero voxels surrounding the tissue from fixation or 
@@ -14,7 +14,7 @@ import java.util.zip.GZIPInputStream;
  * is generally linear in composition, therefore identifying and marking the departure from the linear gradient is an optimal
  * way to find boundaries around the actual tissue. This also works when processing a single-hemisphere versus a whole-brain. 
  * 
- * The program only requires the input of a single T1 contrast nifti-1 format scan output will be separate from the original scan and 
+ * The program only requires the input of a single T1 contrast Nifti-1 format scan output will be separate from the original scan and 
  * will not overwrite existing data. It is largely assumed that the client is using this on a Linux distribution and the paths and tools 
  * used herein are functional on a Linux OS. 
  * TODO: Incorporate the ability to process other scan formats on multiple OSs too. 
@@ -95,14 +95,15 @@ public class processExvivo {
 		
 		outputNifti.readHeader();
 		
-		// *** EDIT THESE LINE FOR CHANGING WHICH FUNCTIONS TO USE ***
+		// *** EDIT THESE LINE FOR CHANGING WHICH FUNCTIONS TO USE *** //
 		boolean smooth = false; 
-		boolean erosion = true; 
-		boolean gradientCorrection = false; 
+		boolean erosion = false; 
+		boolean gradientCorrection = false;
+		boolean patchOvershots = false; 
 		boolean clean = true;
 		
 		// perform data manipulation
-		trimNifti.runFunctions(outputNifti, smooth, erosion, gradientCorrection, clean, 1);
+		trimNifti.runFunctions(outputNifti, smooth, erosion, gradientCorrection, patchOvershots, clean, 1);
 		
 		if (outputNifti.exists()) {
 			System.out.print("File sucessfully written.");
