@@ -10,47 +10,53 @@ import java.io.IOException;
 
 public class trimNifti {
 	
-	public static void runFunctions(Nifti1Dataset inputNifti, boolean smooth, boolean erosion, boolean gradCorr, boolean patchOvershots, boolean clean, int iterations) throws IOException {
-		inputNifti.readHeader();
+	public static void runFunctions(Nifti1Dataset inputNifti, boolean smooth, boolean erosion, 
+			boolean gradCorr, boolean patchOvershots, boolean clean, int iterations) throws IOException {
 		
+		inputNifti.readHeader();
+		double[][][] newData = smoothVolume.robustDataCopy(inputNifti.readDoubleVol((short)0));
+		
+		//set boundary matrix
+		double average = smoothVolume.totalAverage(newData, true); // TODO: adjust values below based on average
+		
+		// *** EDIT THESE LINES TO CHANGE DEFAULT PARAMETERS *** //
+		int lowBound = (int) average/2; // lowest voxel intensity to stop at
+		int depth = 3; // depth to traverse scan in correcting over-shots of the pial surface
+		int fill = 2; // value to fill in overshots with
 		
 		/** put default parameters here at some point
 		 * int erode; // number of voxels to erode from the edges of the scan
-		 * int lowBound; // lowest voxel intensity to stop at
-		 * int length // depth to traverse scan in correcting over-shots of the pial surface
 		 * int stdev; // standard deviation cut-off for outliers when thresholding
 		 * int voxelBound; // same as lowBound for stdev thresholding
+		 * 
 		*/
-		
-		//set boundary matrix
-		double average = thresholdStandardDev.findTotalAverage(inputNifti.readDoubleVol((short)0)); // TODO: adjust values below based on average
-		
-		
-		if (smooth) {
-			inputNifti.writeVol(smoothVolume.movingAverage(inputNifti.readDoubleVol((short) 0), 2), (short) 0);
-		}
 		
 		int counter = 0;
 		while (counter < iterations) {
+			if (smooth) {
+				newData = smoothVolume.movingAverage(newData, 2);
+			}
 			if (erosion) {
-				inputNifti.writeVol(smoothVolume.erode(inputNifti, inputNifti.readDoubleVol((short) 0), 15, 13, true, true, true, true), (short)0);
+				newData = smoothVolume.erode(inputNifti, newData, 15, lowBound, true, true, true, true);
 			}
 		
 			if (gradCorr) {
-				inputNifti.writeVol(thresholdStandardDev.findGradient(inputNifti.readDoubleVol((short) 0), true, true, true, 2, 3, 17, true, true), (short)0);
+				newData = thresholdStandardDev.findGradient(newData, true, true, true, 2, 3, 13, true, true);
 			}
 			
 			if (patchOvershots) {
-				inputNifti.writeVol(smoothVolume.patchOvershots(inputNifti.readDoubleVol((short) 0), 3, 2, true, true, true), (short)0);
+				newData = smoothVolume.patchOvershots(newData, depth, fill, true, true, true);
 			}
 			
 			if (clean) {
-				inputNifti.writeVol(smoothVolume.cleanUp(inputNifti.readDoubleVol((short)0), 3, true, true, true, true), (short) 0);
+				newData = smoothVolume.cleanUp(newData, 3, true, true, true, true, true); // w/ simpleCleaner
+				newData = smoothVolume.cleanUp(newData, 3, true, true, true, true, false); // w/o simpleCleaner
 			}
 			counter++;
 		}
 		
-		System.out.println("Average non-zero intensity of the scan is: " + thresholdStandardDev.round(average,2)); 
+		System.out.println("Average non-zero intensity of the scan is: " + thresholdStandardDev.round(average,2));
+		inputNifti.writeVol(newData,(short) 0);
 	}
 	
 }

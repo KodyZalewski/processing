@@ -11,7 +11,7 @@ import java.util.zip.GZIPInputStream;
  * (largely by Freesurfer). Exvivo scans have an extensive amount of non-zero voxels surrounding the tissue from fixation or 
  * otherwise making volumetric analysis extremely troublesome. This can be solved by identifying the boundaries around the tissue 
  * and masking out non-tissue voxels prior-to or after the boundary depending on the hemisphere. The fixation around the brain
- * is generally linear in composition, therefore identifying and marking the departure from the linear gradient is an optimal
+ * is generally linear in composition, therefore identifying and marking the departure from the gradient is an optimal
  * way to find boundaries around the actual tissue. This also works when processing a single-hemisphere versus a whole-brain. 
  * 
  * The program only requires the input of a single T1 contrast Nifti-1 format scan output will be separate from the original scan and 
@@ -25,6 +25,8 @@ import java.util.zip.GZIPInputStream;
  * The Freesurfer program that this program is designed for pre-processing can be found at freesurfer.net with the original paper
  * detailing the functionality of the program at: Dale, A.M., Fischl, B., Sereno, M.I., 1999. Cortical surface-based analysis. I. 
  * Segmentation and surface reconstruction. Neuroimage 9, 179-194.
+ * 
+ * TODO: Change default format from FLOAT to UCHAR or INT, something that won't randomly zero out voxels
  * 
  * TODO: Prior estimations of whole-brain or hemisphere boundaries can be used to better identify boundaries of other scans
  * in the future. 
@@ -97,9 +99,9 @@ public class processExvivo {
 		
 		// *** EDIT THESE LINE FOR CHANGING WHICH FUNCTIONS TO USE *** //
 		boolean smooth = false; 
-		boolean erosion = false; 
-		boolean gradientCorrection = false;
-		boolean patchOvershots = false; 
+		boolean erosion = true; 
+		boolean gradientCorrection = true;
+		boolean patchOvershots = true; 
 		boolean clean = true;
 		
 		// perform data manipulation
