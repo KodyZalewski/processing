@@ -4,15 +4,17 @@ public class thresholdStandardDev {
 	public static double LINEVAL = 0; // tracks total intensity for the first half of the scan
 	public static double LINEVAL2 = 0;// tracks total intensity opposite half of each dimension of the scan
 	public static int COUNT = 0; // keeps track of the number of non-zero voxels
-	public static double[] AVGDELTA = new double[6]; // stores avgs of each half: [X left, X right, Y superior, Y inferior, Z anterior, Z posterior]
+	public static double[] AVGDELTA = new double[6]; // stores avgs of each half: [X lh, X rh, Y sup, Y inf, Z ant, Z post]
 
 	/** 
 	 * @author KJZ 12.22.2019
 	 * @param Takes nifti scan data as 3D matrix of double[][][]. 
 	 * @param Takes x, y, z dimension to be processed (true) or omitted (false) as boolean. 
-	 * @param Takes standard deviation as a double val. Lowering the standard dev threshold lowers the boundary that the voxels are
-	 *  masked out, assuming that the scan is a T1 weighted volume. TODO: Allow inversion to work with T2-weighted scans. 
-	 * @param Takes bound as int, corresponds to how the scan should be divided up to calculate the standard dev. (e.g, 2 = halves, 3 = thirds etc)
+	 * @param Takes standard deviation as a double val. Lowering the standard dev threshold lowers the boundary 
+	 * that the voxels are masked out, assuming that the scan is a T1 weighted volume. TODO: Allow inversion 
+	 * to work with T2-weighted scans. 
+	 * @param Takes bound as int, corresponds to how the scan should be divided up to calculate the 
+	 * stDev. (e.g, 2 = halves, 3 = thirds etc)
 	 * @param Takes voxelBound as double, what intensity the gradient should halt calculation at. 
 	 * @returns the altered data passed to findGradient() as a matrix of doubles to be written to a new nifti scan.  
 	 */
@@ -20,13 +22,32 @@ public class thresholdStandardDev {
 	public static double[][][] findGradient(double[][][] data, boolean x, boolean y, boolean z, 
 		double stdev, int bound, double voxelBound, boolean firstHalf, boolean secondHalf) {
 		
-		int XDIM = data[0][0].length;
-		int YDIM = data[0].length;
-		int ZDIM = data.length;
+		int XDIM = data[0][0].length; int YDIM = data[0].length; int ZDIM = data.length;
 		
-		System.out.println("X, Y, Z Dimensions are: " + XDIM + " " + YDIM + " " + ZDIM);
+		System.out.println(""); System.out.println
+		("X, Y, Z Dimensions are: " + XDIM + " x " + YDIM + " x " + ZDIM); 
+		System.out.println("");
 		
-		// matrices for storing the standard deviation for each row in a grid representing both sides of the scan
+		if (x) {
+			data = thrshldOutliers(data, findGradientHelper(data, ZDIM, YDIM, XDIM, bound, "x"),
+					ZDIM, YDIM, 0, 1, 0, bound, "x", stdev, XDIM/bound);
+			data = thrshldOutliers(data, findGradientHelper(data, ZDIM, YDIM, XDIM, bound, "x"),
+					ZDIM, YDIM, XDIM, -1, 1, bound, "x", stdev, XDIM-(XDIM/bound));
+		}
+		if (y) {
+			data = thrshldOutliers(data, findGradientHelper(data, ZDIM, XDIM, YDIM, bound, "y"),
+					ZDIM, XDIM, 0, 1, 0, bound, "y", stdev, YDIM/bound);
+			data = thrshldOutliers(data, findGradientHelper(data, ZDIM, XDIM, YDIM, bound, "y"),
+					ZDIM, XDIM, YDIM, -1, 1, bound, "y", stdev, YDIM-(YDIM/bound));
+		}
+		if (z) {
+			data = thrshldOutliers(data, findGradientHelper(data, XDIM, YDIM, ZDIM, bound, "z"),
+					XDIM, YDIM, 0, 1, 0, bound, "z", stdev, ZDIM/bound);
+			data = thrshldOutliers(data, findGradientHelper(data, XDIM, YDIM, ZDIM, bound, "z"),
+					XDIM, YDIM, ZDIM, -1, 1, bound, "z", stdev, ZDIM-(ZDIM/bound));
+		}
+		
+		/** matrices for storing the standard deviation for each row in a grid representing both sides of the scan
 		if (x) {
 			data = traverseData(data, findGradientHelper(data, ZDIM, YDIM, XDIM, bound, "x"), 
 				ZDIM, YDIM, XDIM, bound, voxelBound, "x", stdev, firstHalf, secondHalf);
@@ -38,24 +59,28 @@ public class thresholdStandardDev {
 		if (z) {
 			data = traverseData(data, findGradientHelper(data, XDIM, YDIM, ZDIM, bound, "z"), 
 				XDIM, YDIM, ZDIM, bound, voxelBound, "z", stdev, firstHalf, secondHalf);
-		}
-		// TODO: Double-check that the anatomy corresponds with the x, y, z dimensions
-		// UPDATE: anterior and posterior are mixed up, this could also be b/c the scans are in an 
+		}*/
+		
+		// TODO: Double-check that the anatomy UPDATE: anterior and posterior are mixed up, 
+		// this could also be b/c the scans are in an 
 		// odd orientation. Need to test this on a scan with normal orientation. 
 		
-		System.out.println("Average change in each dimension: left = " + round(AVGDELTA[0],2) + " right = " + round(AVGDELTA[1],2) + " dorsal = " + round(AVGDELTA[2],2) + 
-				" ventral = " + round(AVGDELTA[3],2) + " anterior = " + round(AVGDELTA[4],2) + " posterior = " + round(AVGDELTA[5],2));
+		System.out.println("Average gradient delta in each dimension: ");
+		System.out.println("	Left = " + round(AVGDELTA[0],3) + "     Right = " + round(AVGDELTA[1],3));
+		System.out.println("	Dorsal = " + round(AVGDELTA[2],3) + "   Ventral = " + round(AVGDELTA[3],3));
+		System.out.println("	Anterior = " + round(AVGDELTA[4],3) + " Posterior = " + round(AVGDELTA[5],3));
+		System.out.println("");
+		
 		return data;
 	}
-	
 	
 	/** 
 	 * @author KJZ
 	 * @param Helper method for FindGradient takes scan data as 3-dimensional matrix of doubles. 
 	 * @param Takes int as a, b, c, corresponding to the dimensions of the scan. 
 	 * @param Takes a string as whether we are traversing the x, y, or z dimensions of the scan.
-	 * @returns 3D matrix of nifti data as double[][][]. Columns of data correspond to the first and second halves of the
-	 * scan being processed and contain a grid of gradients corresponding to each row of data.  
+	 * @returns 3D matrix of nifti data as double[][][]. Columns of data correspond to the first and 
+	 * second halves of the scan being processed and contain a grid of gradients corresponding to each row of data.  
 	*/
 
 	public static double[][][] findGradientHelper(double[][][] data, int a, int b, int c, int bound, String dimension) {
@@ -209,160 +234,200 @@ public class thresholdStandardDev {
 			System.out.println("No dimension specified");
 		}
 	}
-
-	//TODO: break up everything below this line into it's own separate .java file at some point
 	
-	/** 
-	 * @author KJZ
-	 * @param data is double 3D matrix of T1 mri data.
-	 * @param is the mapping of the avg change in each dimension.
-	 * @param a, b, c as int correspond to the desired dimensions to traverse the scan.
-	 * @param bound as integer corresponds with how the scan should be broken down (i.e. into 4=quarters, 3=thirds, 2=halves etc).
-	 * @param voxelBound as double is the given lowest intensity to stop the thresholding at.
-	 * @param dimension as string x/y/z as to which dimension should be processed.
-	 * @param stdev as double is how many standard deviations should be the cutoff for outlier intensities denoting 
-	 * the outer boundary of the brain (default=2).
-	 * @param firstHalf/secondHalf are boolean as to whether or not to process only one half of a given dimension of the brain.
-	 * 
-	 * @return double as 3D matrix to be written to a new scan with outlier values thresholded out */
-	
-	// add average[][][] grid at some point to arguments to correspond with the stdev grid
-	
-	public static double[][][] traverseData(double[][][] data, double gradient[][][], int a, int b, int c, int bound, 
-			double voxelBound, String dimension, double stdev, boolean firstHalf, boolean secondHalf) {
-
-		boolean voxelBoundary = false;
-
+	// simpler way of writing traverseData()
+	public static double[][][] thrshldOutliers(double[][][] data, double gradient[][][], int a, int b, int c, 
+			int incr, int half, double bnd, String dim, double stdev, int len) {
+		
 		for (int i = 0; i < a; i++) {
 			for (int j = 0; j < b; j++) {
-				if (firstHalf) {
-					for (int k = 0; k < c/bound; k++) {
-						voxelBoundary = returnVoxel(data, gradient, true, i, j, k, dimension, stdev, voxelBound, voxelBoundary); 
-						if (voxelBoundary) {
-							break;
-						} else {
-							data = replaceVoxel(data, i, j, k, dimension);
-						}
+				for (int k = c+incr; k+incr != len; k+= incr) { // fix this line
+
+					if (voxVal(data, gradient, half, i, j, k, dim, stdev, incr, bnd)) {
+						break;
+					} else {
+						data = pushData(data, i, j, k, dim, 0);
 					}
-					voxelBoundary = false; 
-				}
-				if (secondHalf) {
-					for (int k = c - 1; k > (c - c/bound); k--) {
-						voxelBoundary = returnVoxel(data, gradient, false, i, j, k, dimension, stdev, voxelBound, voxelBoundary);
-						if (voxelBoundary) {
-							break; 
-						} else {
-							data = replaceVoxel(data, i, j, k, dimension); 
-						}
-					}
-					voxelBoundary = false; 
 				}
 			}
 		}
 		return data;
 	}
+	
+	// a simpler way to write returnVoxel()	
+	private static boolean voxVal(double[][][] data, double[][][] gradient, int half, int i, int j, int k, 
+			String dim, double stdev, int incr, double bnd) {
 
+		double val = pullData(data, dim, i, j, k);
 
-	public static double[][][] replaceVoxel(double[][][] data, int i, int j, int k, String dimension) {
+		// gradient[][][] might not be right
+		double val2 = ((pullData(data, dim, i, j, k+incr) - (val - rtnDelta(dim, half))))/gradient[half][i][j]; 
+		return voxValHelper(val, val2, stdev, bnd);
+	}
+	
+	private static boolean voxValHelper(double val, double val2, double stdev, double bnd) {
+		
+		if (val2 > -stdev && val > bnd) {
+			return true;
+		} else if (val < 1) {
+			return false;
+		}
+		// find out whatSystem.out.println("ERROR: Value calculated is invalid, returning false.");
+		return false; 
+	}
+
+		/** 
+		 * @author KJZ
+		 * @param data is double 3D matrix of T1 mri data.
+		 * @param is the mapping of the avg change in each dimension.
+		 * @param a, b, c as int correspond to the desired dimensions to traverse the scan.
+		 * @param bound as integer corresponds with how the scan should be broken down (i.e. into 4=quarters, 3=thirds, 2=halves etc).
+		 * @param voxelBound as double is the given lowest intensity to stop the thresholding at.
+		 * @param dim as string x/y/z as to which dim should be processed.
+		 * @param stdev as double is how many standard deviations should be the cutoff for outlier intensities denoting 
+		 * the outer boundary of the brain (default=2).
+		 * @param firstHalf/secondHalf are boolean as to whether or not to process only one half of a given dimension of the brain.
+		 * 
+		 * @return double as 3D matrix to be written to a new scan with outlier values thresholded out */
+		
+		// TODO: add average[][][] grid at some point to arguments to correspond with the stdev grid
+
+		/** public static double[][][] traverseData(double[][][] data, double gradient[][][], int a, int b, int c, int bound, 
+				double voxelBound, String dim, double stdev, boolean firstHalf, boolean secondHalf) {
+
+			boolean voxelBoundary = false;
+
+			for (int i = 0; i < a; i++) {
+				for (int j = 0; j < b; j++) {
+					if (firstHalf) {
+						for (int k = 0; k < c/bound; k++) {
+							voxelBoundary = returnVoxel(data, gradient, true, i, j, k, dim, stdev, voxelBound, voxelBoundary); 
+							if (voxelBoundary) {
+								break;
+							} else {
+								data = pushData(data, i, j, k, dim, 0);
+							}
+						}
+						voxelBoundary = false; 
+					}
+					if (secondHalf) {
+						for (int k = c - 1; k > (c - c/bound); k--) {
+							voxelBoundary = returnVoxel(data, gradient, false, i, j, k, dim, stdev, voxelBound, voxelBoundary);
+							if (voxelBoundary) {
+								break; 
+							} else {
+								data = pushData(data, i, j, k, dim, 0); 
+							}
+						}
+						voxelBoundary = false; 
+					}
+				}
+			}
+			return data;
+		}
+		// Assuming T1 weighted imaging with dark outer boundary, otherwise should be less-than the standard deviation
+		// note that stdev is also given as a negative value,
+		
+		public static boolean returnVoxel(double[][][] data, double[][][] gradient, boolean forward, int i, int j, int k, 
+				String dimension, double stdev, double voxelBound, boolean voxelBoundary) {
+			
+			
+			
+			if (dimension.equals("x")) { // for x dimension data[i][j][k] != 0
+				if (forward) {
+					if (((data[i][j][k+1] - data[i][j][k] - AVGDELTA[0]) / gradient[0][i][j]) > -stdev && data[i][j][k] > voxelBound) {
+						voxelBoundary = false; 
+					} else if (data[i][j][k] > 1) {
+						voxelBoundary = true;  
+					}
+				} else {
+					if (((data[i][j][k-1] - data[i][j][k] - AVGDELTA[1]) / gradient[1][i][j]) > -stdev && data[i][j][k] > voxelBound) {
+						voxelBoundary = false;
+					} else if (data[i][j][k] > 1) {
+						voxelBoundary = true;  
+					}
+				}
+			}
+
+			if (dimension.equals("y")) { // for y dimension data[i][k][j] != 0
+				if (forward) {
+					if ((data[i][k+1][j] - data[i][k][j] - AVGDELTA[2] / gradient[0][i][j]) > -stdev && data[i][k][j] > voxelBound) {
+						voxelBoundary = false;
+					} else if (data[i][k][j] > 1) {
+						voxelBoundary = true; 
+					}
+				} else {
+					if ((data[i][k-1][j] - data[i][k][j] - AVGDELTA[3] / gradient[1][i][j]) > -stdev && data[i][k][j] > voxelBound) {
+						voxelBoundary = false; 
+					} else if (data[i][k][j] > 1) {
+						voxelBoundary = true; 
+					}
+				} 
+
+			}
+
+			if (dimension.equals("z")) { // for z dimension data[k][j][i] != 0
+				if (forward) {
+					if ((data[k+1][j][i] - data[k][j][i] - AVGDELTA[4] / gradient[0][i][j]) > -stdev && data[k][j][i] > voxelBound) {
+						voxelBoundary = false; 
+					}  else if (data[k][j][i] > 1 || data[k][j][i] < voxelBound) {
+						voxelBoundary = true; 
+					}
+				} else {
+					if ((data[k-1][j][i] - data[k][j][i] - AVGDELTA[5] / gradient[1][i][j]) > -stdev && data[k][j][i] > voxelBound) {
+						voxelBoundary = false; 
+					} else if (data[k][j][i] > 1) {
+						voxelBoundary = true; 
+					}
+				} 
+			}
+			return voxelBoundary;
+		}*/
+		
+	// ------------------------------------------------------------ //
+
+	// sets data to the nifti matrix
+	public static double[][][] pushData(double[][][] data, int i, int j, int k, String dimension, double val) {
 		
 		if (dimension.equals("x")) {
-			data[i][j][k] = 0; 
+			data[i][j][k] = val; 
 		} else if (dimension.equals("y")) {
-			data[i][k][j] = 0; 
+			data[i][k][j] = val; 
 		} else if (dimension.equals("z")) { 
-			data[k][j][i] = 0;
+			data[k][j][i] = val;
 		} else {
 			System.out.println("No valid x, y, z dimension argument provided.");		
 		}
 		return data;
 	}
-
-	// Assuming T1 weighted imaging with dark outer boundary, otherwise should be less-than the standard deviation
-	// note that stdev is also given as a negative value,
 	
-	public static boolean returnVoxel(double[][][] data, double[][][] gradient, boolean forward, int i, int j, int k, 
-			String dimension, double stdev, double voxelBound, boolean voxelBoundary) {
+	// retrieves data from the nifti matrix
+	private static double pullData(double[][][] data, String dim, int i, int j, int k) {
+
+		if (dim.equals("x")) {
+			return data[i][j][k];
+		} else if (dim.equals("y")) {
+			return data[i][k][j];
+		} else if (dim.equals("z")) {
+			return data[k][j][i];
+		} else {
+			System.out.println("Error, no value found, returning 0");
+			return 0.0;
+		}
+	}
+
+	// retrieves data from global AVGDELTA[] based on dimension 	
+	public static double rtnDelta(String dim, int half) {
 		
-		if (dimension.equals("x")) { // for x dimension data[i][j][k] != 0
-			if (forward) {
-				if (((data[i][j][k+1] - data[i][j][k] - AVGDELTA[0]) / gradient[0][i][j]) > -stdev && data[i][j][k] > voxelBound) {
-					voxelBoundary = false; 
-				} else if (data[i][j][k] > 1) {
-					voxelBoundary = true;  
-				}
-			} else {
-				if (((data[i][j][k-1] - data[i][j][k] - AVGDELTA[1]) / gradient[1][i][j]) > -stdev && data[i][j][k] > voxelBound) {
-					voxelBoundary = false;
-				} else if (data[i][j][k] > 1) {
-					voxelBoundary = true;  
-				}
-			}
-		}
-
-		if (dimension.equals("y")) { // for y dimension data[i][k][j] != 0
-			if (forward) {
-				if ((data[i][k+1][j] - data[i][k][j] - AVGDELTA[2] / gradient[0][i][j]) > -stdev && data[i][k][j] > voxelBound) {
-					voxelBoundary = false;
-				} else if (data[i][k][j] > 1) {
-					voxelBoundary = true; 
-				}
-			} else {
-				if ((data[i][k-1][j] - data[i][k][j] - AVGDELTA[3] / gradient[1][i][j]) > -stdev && data[i][k][j] > voxelBound) {
-					voxelBoundary = false; 
-				} else if (data[i][k][j] > 1) {
-					voxelBoundary = true; 
-				}
-			} 
-
-		}
-
-		if (dimension.equals("z")) { // for z dimension data[k][j][i] != 0
-			if (forward) {
-				if ((data[k+1][j][i] - data[k][j][i] - AVGDELTA[4] / gradient[0][i][j]) > -stdev && data[k][j][i] > voxelBound) {
-					voxelBoundary = false; 
-				}  else if (data[k][j][i] > 1 || data[k][j][i] < voxelBound) {
-					voxelBoundary = true; 
-				}
-			} else {
-				if ((data[k-1][j][i] - data[k][j][i] - AVGDELTA[5] / gradient[1][i][j]) > -stdev && data[k][j][i] > voxelBound) {
-					voxelBoundary = false; 
-				} else if (data[k][j][i] > 1) {
-					voxelBoundary = true; 
-				}
-			} 
-		}
-		return voxelBoundary;
-	}
-	
-	/**
-	 * @param takes 3D nifti data matrix as double[][][]
-	 * @result Finds the total average of a nifti dataset for all non-zero voxels
-	 */
-	public static double findTotalAverage(double[][][] data) {
-		double avg = 0;
-		int counter = 0;
-		for (int i = 0; i < data.length; i++) {		
-			for (int j = 0; j < data[i].length; j++) {
-				for (int k = 0; k < data[i][j].length; k++) {
-					if (data[i][j][k] != 0) {
-						avg = avg+=data[i][j][k];
-						counter++;
-					}
-				}
-			}
-		}
-		return (avg/counter);
-	}
-	
-	/**
-	 * @param data
-	 */
-	public static void outerAverage(double[][][] data) {
-		for (int i = 0; i < data.length; i++) {
-			for(int j = 0; j < data[i].length; j++) {
-				for (int k = 0; k < data[i][j].length/2; k++) {
-				}
-			}
+		if (dim.equals("x")) {
+			return AVGDELTA[0+half];
+		} else if (dim.equals("y")) {
+			return AVGDELTA[2+half];
+		} else if (dim.equals("z")) {
+			return AVGDELTA[4+half];
+		} else {
+			System.out.println("Error, no value found, returning 0");
+			return 0.0;
 		}
 	}
 	

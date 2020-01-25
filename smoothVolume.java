@@ -5,13 +5,13 @@ public class smoothVolume {
 	
 	// TODO: alter public methods to handle opposite dimensions independently
 	// TODO: don't set all values of k to Math.abs() every single time, needlessly convoluted
-	// TODO: double-check loop counters
+	// TODO: double-check loop counters, why does patch create a line of intensity "2"?
 	
 	// ------------------------------------------------------------ //
 	
 	/**
 	 * @author KJZ
-	 * @param nds is the input nifti dataset volume.
+	 * @param nds is the input nifti dataset volume, can also handle taking double matrix.
 	 * @result Creates an equivalent global variable boolean grid named "BOUNDARIES".
 	 * Boundaries of the brain can be marked later as "true". 
 	 */
@@ -32,11 +32,34 @@ public class smoothVolume {
 	// ------------------------------------------------------------ //
 	
 	/**
+	 * @author KJZ
+	 * @param takes zDim, yDim, xDim to set matrix boundaries
+	 * @return double matrix of zeros
+	 */
+	
+	public static double[][][] writeZeros(int zDim, int yDim, int xDim) {
+	
+		double[][][] dataBound = new double[zDim][yDim][xDim];
+		
+		for ( int i = 0; i < zDim; i++ ) {
+			for ( int j = 0; j < yDim; j++ ) {
+				for ( int k = 0; k < xDim; k++ ) {
+					dataBound[i][j][k] = 0; 
+				}
+			}
+		}
+		return dataBound;
+	}
+	
+	// ------------------------------------------------------------ //
+	
+	/**
 	 * @author KJZ 1.7.2020
 	 * @param Takes 3D data as double 3D matrix.
 	 * @param Takes boolean nonZero, if true then only non-zero voxels are included
 	 * @result Finds the total average of a nifti dataset for given sets of voxels
 	 */
+	
 	public static double totalAverage(double[][][] data, boolean nonZero) {
 		double avg = 0; int counter = 0;
 		
@@ -70,16 +93,23 @@ public class smoothVolume {
 
 	public static double[][][] movingAverage(double[][][] data, int length) {
 
-		int x = data[0][0].length; int y = data[0].length; int z = data.length; // fix from being [0] at some point
-
-		data = movingAverageHelper(data, z, y, x, length, "x");
-		data = movingAverageHelper(data, z, x, y, length, "y");
-		data = movingAverageHelper(data, x, y, z, length, "z");
-		return data; 
+		System.out.println("Smoothing volume... ");
+				
+		int x = data[0][0].length; int y = data[0].length; int z = data.length; 
+		
+		return movingAverageHelper(movingAverageHelper(movingAverageHelper(data, 
+				z, y, x, length, "x"), 
+				z, x, y, length, "y"),
+				x, y, z, length, "z");
+		
+		
 	}
 	
-	private static double[][][] movingAverageHelper(double[][][] data, int a, int b, int c, int length, String dim) {
+	private static double[][][] movingAverageHelper(double[][][] data, 
+			int a, int b, int c, int length, String dim) {
+		
 		double newData;
+		
 		for ( int i = length; i < a; i++ ) {
 			for ( int j = length; j < b; j++ ) { 
 				for ( int k = length; k < c - length; k++ ) {
@@ -91,6 +121,7 @@ public class smoothVolume {
 				}
 			}
 		}
+	
 		return data; 
 	}
 	
@@ -105,13 +136,15 @@ public class smoothVolume {
 	 * @result finds the average of the most peripheral voxels in dimension
 	 * passed to the function. This aids with normalizing each dimension appropriately. 
 	 */
-	public static double outerAverage(double[][][] data, String dim, int depth, int a, int b, int c) {
+	
+	public static double outerAverage(double[][][] data, String dim, 
+			int depth, int a, int b, int c, int incr, int len) {
 		
 		int voxCount = 0; double avg = 0; double tmp;
 		
 		for (int i = 0; i < a; i++) {
 			for(int j = 0; j < b; j++) {
-				for (int k = c; k < c/2 && Math.abs(k) > 0; k++) {
+				for (int k = c; k != len; k+=incr) {
 					if (checkBoundary(data, dim, 0, 0.99, i, j, k)) {
 						for (int l = 0; l < depth; l++) {
 							tmp = pullData(data, dim, i, j, k+l);
@@ -120,11 +153,33 @@ public class smoothVolume {
 								avg+=tmp;
 							}
 						}
+						break;
 					}
 				}
 			}
 		}
 		return avg/voxCount;
+	}
+	
+	// finds the average of [depth] voxel intensity for each of the six dimensional facets
+	public static double[] dimAverages(double[][][] data, int depth) {
+		
+		double[] avgs = new double[6];
+		
+		avgs[0] = outerAverage(data, "x", depth, data.length-1, data[0].length-1, 0, 1, data[0][0].length/2);
+		avgs[1] = outerAverage(data, "x", depth, data.length-1, data[0].length-1, data[0][0].length-2, -1, data[0][0].length/2);		
+		avgs[2] = outerAverage(data, "y", depth, data.length-1, data[0][0].length-1, 0, 1, data[0].length/2);		
+		avgs[3] = outerAverage(data, "y", depth, data.length-1, data[0][0].length-1, data[0].length-2, -1, data[0].length/2);		
+		avgs[4] = outerAverage(data, "z", depth, data[0][0].length-1, data[0].length-1, 0, 1, data.length/2);	
+		avgs[5] = outerAverage(data, "z", depth, data[0][0].length-1, data[0].length-1, data.length-2, -1, data.length/2);
+		System.out.println("X+ outer average is: " + thresholdStandardDev.round(avgs[0],3) + 
+				" X- outer average is: " + thresholdStandardDev.round(avgs[1],3));
+		System.out.println("Y+ outer average is: " + thresholdStandardDev.round(avgs[2],3) +  
+				" Y- outer average is: " + thresholdStandardDev.round(avgs[3],3)); 
+		System.out.println("Z+ outer average is: " + thresholdStandardDev.round(avgs[4],3) + 
+				" Z- outer average is: " + thresholdStandardDev.round(avgs[5],3));
+		
+		return avgs;
 	}
 	
 	// ------------------------------------------------------------ //
@@ -134,32 +189,49 @@ public class smoothVolume {
 	 * @param data is nifti intensity data as 3D matrix double[][][]. 
 	 * @param erode is the max length (as integer) of voxels to be eroded from the edge of the scan.
 	 * @param lowBound is int denoting the lowest intensity threshold to reach before stopping. 
-	 * @param doX, doY, doZ as bool passed by the client to denote which dimension are being processed. 
+	 * @param xDim, yDim, zDim as bool passed by the client to denote which dimension are being processed. 
 	 * @param half denotes which half of the scan is being traversed (-dim if !half, otherwise +dim).
 	 * @return eroded mri intensity data as 3D matrix in double format
 	 * @result The number of voxels provided by the client around the edge of the scan are thresholded out
 	 * provided they are above the intensity of lowBound. 
 	 */
+	
 	public static double[][][] erode(Nifti1Dataset inputScan, double[][][] data, int erode, int lowBound, 
-			boolean doX, boolean doY, boolean doZ, boolean half) {
+			boolean xDim, boolean yDim, boolean zDim, boolean firstHalf, boolean secondHalf) {
+		
+		System.out.println("Eroding " + erode + " voxels from the surface with "
+				+ "intensities greater than " + lowBound + "...");
 		
 		writeBoundaries(inputScan);
 		
 		int x = data[0][0].length-1; int y = data[0].length-1; int z = data.length-1;
 		
-		if (doX) {
-			data = erodeHelper(data, "x", erode, lowBound, z, y, x, 0);
-			data = erodeHelper(data, "x", erode, lowBound, z, y, x, -(x));
+		if (xDim) {
+			if (firstHalf) {
+				data = erodeHelper(data, "x", erode, lowBound, z, y, x, 0);
+			}
+			if (secondHalf) {
+				data = erodeHelper(data, "x", erode, lowBound, z, y, x, -(x));
+			}
 		}
-		if (doY) {
-			data = erodeHelper(data, "y", erode, lowBound, z, x, y, 0);
-			data = erodeHelper(data, "y", erode, lowBound, z, x, y, -(y));
+		if (yDim) {
+			if (firstHalf) {
+				data = erodeHelper(data, "y", erode, lowBound, z, x, y, 0);
+			}
+			if (secondHalf) {
+				data = erodeHelper(data, "y", erode, lowBound, z, x, y, -(y));
+			}
 		}
-		if (doZ) {
-			data = erodeHelper(data, "z", erode, lowBound, x, y, z, 0);
-			data = erodeHelper(data, "z", erode, lowBound, x, y, z, -(z));
+		if (zDim) {
+			if (firstHalf) {
+				data = erodeHelper(data, "z", erode, lowBound, x, y, z, 0);
+			}
+			if (secondHalf) {
+				data = erodeHelper(data, "z", erode, lowBound, x, y, z, -(z));
+			}
 		}
 		
+		System.out.println("Finished erosion."); System.out.println("");
 		return data; 
 		
 	}
@@ -199,32 +271,43 @@ public class smoothVolume {
 	 * @author KJZ 12.19
 	 * @param data data is nifti intensity data as 3D matrix double[][][].
 	 * @param erode is the max width (as integer) of voxels omitted from thresholding to be cleaned.  
-	 * @param doX, doY, doZ as bool passed by the client to denote which dimension are being processed. 
+	 * @param xDim, yDim, zDim as bool passed by the client to denote which dimension are being processed. 
 	 * @return mri intensity data as 3D matrix in double format.
 	 * @result extraneous streaks of voxels outside of the scan or lone outliers that are on the periphery of the scan are removed. 
 	 */
 	
-	public static double[][][] cleanUp(double[][][] data, int erode, boolean doX, boolean doY, boolean doZ, boolean half, boolean simpleCleaner) {
+	public static double[][][] cleanUp(double[][][] data, int erode, 
+			boolean xDim, boolean yDim, boolean zDim, boolean half, boolean simpleCleaner) {
+		
+		System.out.println("Cleaning up voxel strands...");
+		
+		if (simpleCleaner) {
+			System.out.println("Running simple cleaner.");
+		} else {
+			System.out.println("Not running simple cleaner.");
+		}
 		
 		int x = data[0][0].length-erode; int y = data[0].length-erode; int z = data.length-erode;
 		
-		if (doX) {
+		if (xDim) {
 			data = cleanUpHelper(data, "x", erode, simpleCleaner, z, y, x, 0);
 			data = cleanUpHelper(data, "x", erode, simpleCleaner, z, y, x, -(x));
 		}
-		if (doY) {
+		if (yDim) {
 			data = cleanUpHelper(data, "y", erode, simpleCleaner, z, x, y, 0);
 			data = cleanUpHelper(data, "y", erode, simpleCleaner, z, x, y, -(y));
 		}
-		if (doZ) {
+		if (zDim) {
 			data = cleanUpHelper(data, "z", erode, simpleCleaner, x, y, z, 0);
 			data = cleanUpHelper(data, "z", erode, simpleCleaner, x, y, z, -(z));
 		}
 		
+		System.out.println("Finished clean-up."); System.out.println("");
 		return data; 	
 	}
 	
-	private static double[][][] cleanUpHelper(double[][][] data, String dim, int erode, boolean simpleCleaner, int a, int b, int c,  int distalLength) {
+	private static double[][][] cleanUpHelper(double[][][] data, String dim, int erode, 
+			boolean simpleCleaner, int a, int b, int c,  int distalLength) {
 		
 		checkParam(erode, c);
 		
@@ -269,68 +352,84 @@ public class smoothVolume {
 	/**
 	 * @author KJZ 1.7.2020
 	 * @param data data is nifti intensity data as 3D matrix double[][][].
-	 * @param depth is the depth to explore whether or not there is an overshot judging from the surrounding non-zero voxels
-	 * @param fill is the intensity that should fill in the overshot artefacts,
-	 * @param doX, doY, doZ as bool passed by the client to denote which dimension are being processed. 
 	 * @return mri intensity data as 3D matrix in double[][][] format with any single lines of 0-labeled voxels
-	 * @result  overshooting the boundary of the brain filled-in with a value given by the client as "fill" when there are streaks
-	 * defined by "length".
+	 * @result  overshooting the boundary of the brain filled-in with a value (default = 2) and marked as part of the
+	 * brain to include in the mask. 
 	 */
 	
-	public static double[][][] patchOvershots(double[][][] data, int depth, double fill, boolean doX, boolean doY, boolean doZ) {
+	public static double[][][] patchOvershots(double[][][] data) {
 		
-		int x = data[0][0].length-depth+1; int y = data[0].length-depth+1; int z = data.length-depth+1;
+		System.out.println("Patching overshots of the pial surface...");
 		
-		if (doX) {
-			data = patchOvershotsHelper(data, "x", depth, fill, z, y, x, 0);
-			data = patchOvershotsHelper(data, "x", depth, fill, z, y, x, -(x));
-		}
-		if (doY) {
-			data = patchOvershotsHelper(data, "y", depth, fill, z, x, y, 0);
-			data = patchOvershotsHelper(data, "y", depth, fill, z, x, y, -(y));
-		}
-		if (doZ) {
-			data = patchOvershotsHelper(data, "z", depth, fill, x, y, z, 0);
-			data = patchOvershotsHelper(data, "z", depth, fill, x, y, z, -(z));
-		}
+		int zDim = data.length; int yDim = data[0].length; int xDim = data[0][0].length;
+		double[][][] dataBound = writeZeros(zDim, yDim, xDim);
 		
-		return data;
-	}
-	
-	private static double[][][] patchOvershotsHelper(double[][][] data, String dim, int depth, double fill, int a, int b, int c,  int distalLength) {
-	
-		int count = 0;
+		// TODO: Can maybe cut the second length in half later on?
+		// traverses each dimension of the scan
+		dataBound = patchSlice(data, patchSlice(data, patchSlice(data, dataBound, 
+				"z", xDim, yDim, xDim),
+				"x", zDim, yDim, xDim), 
+				"y", zDim, xDim, yDim);
 		
-		for ( int i = 1; i < a; i++ ) {
-			for ( int j = 1; j < b; j++ ) {		
-				for (int k = distalLength+1; k < c/2 - depth && Math.abs(k)+depth > depth; k++) {
-					
-					if (pullData(data, dim, i, j, Math.abs(k)) > 0.99) {
-						break;
-					} else if (patchOvershotsHelper2(pullData(data, dim, i, j, Math.abs(k)), pullData(data, dim, i+1, j, Math.abs(k)), 
-							pullData(data, dim, i, j+1, Math.abs(k)), pullData(data, dim, i-1, j, Math.abs(k)), pullData(data, dim, i, j-1, Math.abs(k)))) {
-						count++;
-					}
-					if (count == depth) {
-						count = 0;
-						while (pullData(data, dim, i, j, Math.abs(k+count)) < 1 && Math.abs(k+count) < c/2) { 
-							data = pushData(data, dim, i, j, Math.abs(k+count), fill) ;
-							count++;
-						}
-						break;
+		// remaining 0 voxels are in the interior of the brain -> 2
+        // outside of the brain "1" voxels are returned to intensity 0.
+		for ( int i = 1; i < zDim; i++ ) {
+			for ( int j = 0; j < yDim; j++ ) {
+				for ( int k = 0; k < xDim; k++ ) {
+					if (dataBound[i][j][k] == 0) {
+						data[i][j][k] = 2;
+					} else if (dataBound[i][j][k] == 1) {
+						data[i][j][k] = 0;
 					}
 				}
-				count = 0;
 			}
 		}
+		System.out.println("Finished patching."); System.out.println("");
 		return data;
 	}
 	
-	private static boolean patchOvershotsHelper2(double v, double w, double x, double y, double z) {
-		if (v < 0.99 && w > 0.99 && x > 0.99 && y > 0.99 && z > 0.99) {
-			return true;
+	// TODO: might need to come back and implement firstHalf/secondHalf function
+	// traverses scan from the opposite corners of each slice
+	private static double[][][] patchSlice(double[][][] data, double[][][] dataBound, 
+			String dim, int a, int b, int c) {
+		
+		for ( int i = 0; i < a; i++ ) {
+			dataBound = patchSliceHelper(data, patchSliceHelper(data, dataBound, 
+					dim, 1, i, 0, 0, b, c), 
+					dim, -1, i, b-1, c-1, 0, 0);
+			
+			dataBound = patchSliceHelper2(data, dim, i, b, c);
 		}
-		return false; 
+		return dataBound;
+	}
+	
+	// data <2 -> 1, otherwise reaches boundary and stops traversing the scan
+	private static double[][][] patchSliceHelper(double[][][] data, double[][][] dataBound, 
+			String dim, int incr, int i, int j, int k, int len1, int len2) {
+		
+		for (int b = j; b != len1; b+=incr) {
+			for (int c = k; c != len2; c+=incr) {
+				if (pullData(data, dim, i, b, c) < 2) {
+					pushData(dataBound, dim, i, b, c, 1);
+				} else if (pullData(data, dim, i, b, c) >= 2) { 
+					break;
+				}
+			}
+		}
+		return dataBound;
+	}
+	
+	// 0 voxels inside of the brain -> 2, ignores voxels outside the brain labeled "1"
+	private static double[][][] patchSliceHelper2(double[][][] dataBound, String dim, int a, int j, int k) {
+		
+		for (int b = 0; b < j; b++) {
+			for (int c = 0; c < k; c++) {
+				if (pullData(dataBound, dim, a, b, c) == 0) {
+					dataBound = pushData(dataBound, dim, a, b, c, 2); 
+				} 
+			}
+		}
+		return dataBound; 
 	}
 
 	// ------------------------------------------------------------ //
@@ -438,6 +537,15 @@ public class smoothVolume {
 		}
 		return newData;
 	}
+	
+	/** // checks dimensions of the matrix passed to the function
+	private static boolean checkLen(int i, int j, int k) {
+		if (i < 4 || j < 4 || k < 4) {
+			System.out.println("ERROR: Integers + " + i + "][" + j + "][" + k + "] matrix needs minimum of 4x4x4 dimensions. Exiting...");
+			System.exit(1);
+		}
+		return true;
+	}*/
 	
 	// ensures values passed to an array are not negative, throws error and exits otherwise
 	private static boolean checkNegative(int i, int j, int k) {

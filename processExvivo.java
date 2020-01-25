@@ -64,9 +64,11 @@ public class processExvivo {
 		Nifti1Dataset inputNifti = new Nifti1Dataset(LOCALPATH + inputFile);
 		
 		if (inputNifti.exists()) {
-			System.out.println("Input nifti file has readable header and data.");
+			System.out.println("Input NIFTI-1 file has readable header and data.");
+			System.out.println("");
 		} else {
 			System.out.println("Nifti file does not have usable header or data.");
+			System.out.println("Exiting...");
 			System.exit(1);
 		}
 		
@@ -99,10 +101,10 @@ public class processExvivo {
 		
 		// *** EDIT THESE LINE FOR CHANGING WHICH FUNCTIONS TO USE *** //
 		boolean smooth = false; 
-		boolean erosion = true; 
-		boolean gradientCorrection = true;
-		boolean patchOvershots = true; 
+		boolean erosion = false; 
+		boolean gradientCorrection = false;
 		boolean clean = true;
+		boolean patchOvershots = true; 
 		
 		// perform data manipulation
 		trimNifti.runFunctions(outputNifti, smooth, erosion, gradientCorrection, patchOvershots, clean, 1);
@@ -120,11 +122,14 @@ public class processExvivo {
 	 * @param args are string to give to the program and allow the client input when no other arguments are specified. 
 	 * Otherwise the program uses the given nifti file name and path for processing. 
 	 */
+	
 	public static void checkArgs(String[] args) {
+		
 		if (args.length == 4) {
 			
 			System.out.println("The local path is: " + LOCALPATH);
 			System.out.println("The output path is: " + OUTPUT_PATH);
+			System.out.println("");
 			
 		} else if (args.length > 0 && args.length < 4) { 
 			
@@ -161,12 +166,13 @@ public class processExvivo {
 	}
 	
 	/**
-	 * 		
 	 * @param inputNifti
 	 * @param niftiCopy
 	 */
 	public static void copyNifti(Nifti1Dataset inputNifti, String niftiCopy) {
+		
 		byte[] b;
+		
 		try {
 			inputNifti.readHeader();
 			b = inputNifti.readData();
@@ -174,11 +180,10 @@ public class processExvivo {
 			inputNifti.setDataFilename(niftiCopy);
 			inputNifti.writeHeader();
 			inputNifti.writeData(b);
-		}
-		catch (IOException ex) {
+			
+		} catch (IOException ex) {
 			System.out.println("\nCould not copy nifti to "+niftiCopy+": "+ex.getMessage());
 		}
-
 	}
 	
 	/**
@@ -215,6 +220,7 @@ public class processExvivo {
 	
 	// We can only check if a class from a package exists, not the package itself
 	private static boolean checkPackage() {
+		
 		try {
 			Class.forName("java.util.zip.GZIPInputStream");
 			return true;
