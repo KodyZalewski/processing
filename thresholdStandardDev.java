@@ -92,26 +92,40 @@ public class thresholdStandardDev {
 		double[] residuals = new double[c/bound+1]; double[] residuals2 = new double[c/bound+1];
 		
 		COUNT = 0;
-
+		
 		for (int i = 0; i < a; i++) {
 			for (int j = 0; j < b; j++) {
+				gradients[0][i][j] = findGrdnt(data, residuals, dimension, i, j, 0, 1, c/bound);
+				gradients[1][i][j] = findGrdnt(data, residuals2, dimension, i, j, c, -1, (c-(c/bound)) );
+				
+				/**
 				for (int k = 0; k < c/bound; k++) {
-					residuals = calcResiduals(data, residuals, true, i, j, k, k, dimension); 
+					//residuals = calcResiduals(data, residuals, true, i, j, k, k, dimension);
 					
+					val = pullData(data, dimension, i, j, k);
+					if (val == 0) {
+						residuals[COUNT] = (pullData(data, dimension, i, j, k+1) - val);
+						LINEVAL += residuals[COUNT];
+						COUNT++;
+					}
 				}
-				
 				COUNT = 0;
-				averages[0][i][j] = takeAverage(residuals); //removed absolute val
-				gradients[0][i][j] = standardDeviation(residuals, averages[0][i][j]); //removed absolute val
-				
-				
+				averages[0][i][j] = takeAverage(residuals);
+				gradients[0][i][j] = standardDeviation(residuals, averages[0][i][j]);
+	
 				for (int k = c - 1; k > (c - c/bound); k--) {
-					residuals2 = calcResiduals(data, residuals2, false, i, j, k-1, (c-k-1), dimension);
+					//residuals2 = calcResiduals(data, residuals2, false, i, j, k-1, (c-k-1), dimension);
 					
-				}
+					val = pullData(data, dimension, i, j, k);
+					if (val == 0) {
+						residuals[COUNT] = (pullData(data, dimension, i, j, k-1) - val);
+						LINEVAL2 += residuals[COUNT];
+						COUNT++;
+					}
+				} 
 				COUNT = 0;
-				averages[1][i][j] = takeAverage(residuals); //removed absolute val
-				gradients[1][i][j] = standardDeviation(residuals2, averages[1][i][j]); //removed absolute val
+				averages[1][i][j] = takeAverage(residuals2);
+				gradients[1][i][j] = standardDeviation(residuals2, averages[1][i][j]); */
 				
 			}
 		}
@@ -123,6 +137,30 @@ public class thresholdStandardDev {
 		return gradients;
 	}
 	
+	public static double findGrdnt(double[][][] data, double[] resid, String dim, int i, int j, int k, int incr, int len) {
+		resid = findResid(data, resid, dim, i, j, k, incr, len);
+		COUNT = 0;
+		return standardDeviation(resid, takeAvg(resid));
+	}
+	
+	public static double[] findResid(double[][][] data, double[] resid, String dim, int i, int j, int k, int incr, int len) {
+		double val;
+		while (k != len-incr) {
+			val = pullData(data, dim, i, j, k);
+			if (val != 0) {
+				resid[COUNT] = (pullData(data, dim, i, j, k+incr) - val);
+				if (incr > 0) {
+					LINEVAL += resid[COUNT];
+				} else if (incr < 0) {
+					LINEVAL2 += resid[COUNT];
+				}
+				COUNT++;
+			}
+			k+=incr;
+		}
+		return resid;
+	}
+	
 	/** 
 	 * @param Nifti scan data as a 3D matrix of double[][][] values. 
 	 * @param Array of residuals as double[] for deriving the standard dev and average from. 
@@ -131,7 +169,6 @@ public class thresholdStandardDev {
 	 * @param residValue is what half of the scan is where the value is being stored as int.
 	 * @param Dimension denotes x, y, or z dimension of the scan as string.  
 	 * @returns The gradient of the scan with the standard deviation at each voxel location.  
-	 */
 
 	public static double[] calcResiduals(double[][][] data, double[] residuals, 
 			boolean forward, int i, int j, int k, int residValue, String dimension) {
@@ -176,8 +213,7 @@ public class thresholdStandardDev {
 			residuals[COUNT] = 0.0;
 		}
 		return residuals;
-	}
-
+	} */
 
 	/** 
 	 * @param residuals are single double array of voxels from mri data, 
@@ -197,17 +233,17 @@ public class thresholdStandardDev {
 		return Math.sqrt((standardDev/(n - power)));
 	}
 	
-	public static double takeAverage(double[] residuals) {
+	public static double takeAvg(double[] resid) {
 		
-		double average = 0; int n = 0;
+		double avg = 0; int n = 0;
 		
-		for (int counter = 0; counter < residuals.length; counter++) {
-			if (residuals[counter] != 0) {
-				average += average;
+		for (int counter = 0; counter < resid.length; counter++) {
+			if (resid[counter] != 0) {
+				avg += avg;
 				n++;
 			}
 		}
-		return average/n;
+		return avg/n;
 	}
 
 	/**
