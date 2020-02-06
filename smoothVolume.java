@@ -96,12 +96,13 @@ public class smoothVolume {
 		System.out.println("Smoothing volume... ");
 				
 		int x = data[0][0].length; int y = data[0].length; int z = data.length; 
+		System.out.println("Finished smoothing."); System.out.println("");
 		
 		return movingAverageHelper(movingAverageHelper(movingAverageHelper(data, 
 				z, y, x, length, "x"), 
 				z, x, y, length, "y"),
 				x, y, z, length, "z");
-		
+			
 		
 	}
 	
@@ -147,10 +148,14 @@ public class smoothVolume {
 				for (int k = c; k != len; k+=incr) {
 					if (checkBoundary(data, dim, 0, 0.99, i, j, k)) {
 						for (int l = 0; l < depth; l++) {
-							tmp = pullData(data, dim, i, j, k+l);
-							if (tmp > 0.99) {
-								voxCount++;
-								avg+=tmp;
+							if (k+l == c-incr) {
+								break;
+							} else {
+								tmp = pullData(data, dim, i, j, k+l);
+								if (tmp > 0.99) {
+									voxCount++;
+									avg+=tmp;
+								}
 							}
 						}
 						break;

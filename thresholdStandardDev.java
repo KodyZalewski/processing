@@ -59,7 +59,7 @@ public class thresholdStandardDev {
 		if (z) {
 			data = traverseData(data, findGradientHelper(data, XDIM, YDIM, ZDIM, bound, "z"), 
 				XDIM, YDIM, ZDIM, bound, voxelBound, "z", stdev, firstHalf, secondHalf);
-		}*/
+		} */
 		
 		// TODO: Double-check that the anatomy UPDATE: anterior and posterior are mixed up, 
 		// this could also be b/c the scans are in an 
@@ -239,15 +239,23 @@ public class thresholdStandardDev {
 	public static double[][][] thrshldOutliers(double[][][] data, double gradient[][][], int a, int b, int c, 
 			int incr, int half, double bnd, String dim, double stdev, int len) {
 		
+		int k;
+		if (half == 0) {
+			k = 0;
+		} else {
+			k = c-1;
+		}
+		
 		for (int i = 0; i < a; i++) {
 			for (int j = 0; j < b; j++) {
-				for (int k = c+incr; k+incr != len; k+= incr) { // fix this line
+				while (k != len) { // fix this line
 
 					if (voxVal(data, gradient, half, i, j, k, dim, stdev, incr, bnd)) {
 						break;
 					} else {
 						data = pushData(data, i, j, k, dim, 0);
 					}
+					k+=incr;
 				}
 			}
 		}
@@ -274,7 +282,7 @@ public class thresholdStandardDev {
 		}
 		// find out whatSystem.out.println("ERROR: Value calculated is invalid, returning false.");
 		return false; 
-	}
+	} 
 
 		/** 
 		 * @author KJZ
@@ -291,8 +299,8 @@ public class thresholdStandardDev {
 		 * @return double as 3D matrix to be written to a new scan with outlier values thresholded out */
 		
 		// TODO: add average[][][] grid at some point to arguments to correspond with the stdev grid
-
-		/** public static double[][][] traverseData(double[][][] data, double gradient[][][], int a, int b, int c, int bound, 
+		/**
+		 public static double[][][] traverseData(double[][][] data, double gradient[][][], int a, int b, int c, int bound, 
 				double voxelBound, String dim, double stdev, boolean firstHalf, boolean secondHalf) {
 
 			boolean voxelBoundary = false;
@@ -382,7 +390,7 @@ public class thresholdStandardDev {
 				} 
 			}
 			return voxelBoundary;
-		}*/
+		} */
 		
 	// ------------------------------------------------------------ //
 
