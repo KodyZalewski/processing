@@ -39,7 +39,7 @@ public class trimNifti {
 				newData = smoothVolume.movingAverage(newData, 2);
 			}
 			if (gradCorr) {
-				newData = thresholdStandardDev.findGradient(newData, true, true, true, 2, 3, 10, true, true);
+				newData = thresholdStandardDev.findGrdnt(newData, true, true, true, 3, 3, 10, true, true);
 			}
 			if (erosion) {
 				newData = smoothVolume.erode(inputNifti, newData, 15, 9, true, true, true, true, true);
