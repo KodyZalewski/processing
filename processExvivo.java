@@ -99,12 +99,12 @@ public class processExvivo {
 		
 		outputNifti.readHeader();
 		
-		// *** EDIT THESE LINE FOR CHANGING WHICH FUNCTIONS TO USE *** //
+		// *** EDIT THESE LINES FOR CHANGING WHICH FUNCTIONS TO USE *** //
 		boolean smooth = false; 
-		boolean erosion = true; 
+		boolean erosion = false; 
 		boolean gradientCorrection = false;
 		boolean clean = true;
-		boolean patchOvershots = true;
+		boolean patchOvershots = false;
 		
 		// perform data manipulation
 		trimNifti.runFunctions(outputNifti, smooth, erosion, gradientCorrection, patchOvershots, clean, 1);

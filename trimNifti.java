@@ -11,7 +11,7 @@ import java.io.IOException;
 public class trimNifti {
 	
 	public static void runFunctions(Nifti1Dataset inputNifti, boolean smooth, boolean erosion, 
-			boolean gradCorr, boolean patchOvershots, boolean clean, int iterations) throws IOException {
+			boolean gradCorr, boolean patchOvershots, boolean clean, int iter) throws IOException {
 		
 		inputNifti.readHeader();
 		double[][][] newData = smoothVolume.robustDataCopy(inputNifti.readDoubleVol((short)0));
@@ -19,39 +19,66 @@ public class trimNifti {
 		//set boundary matrix
 		double average = smoothVolume.totalAverage(newData, true); // TODO: adjust values below based on average
 		int erode; // number of voxels to erode from the edges of the scan
-		int stdev; // standard deviation cut-off for outliers when thresholding
-		int voxelBound; // same as lowBound for stdev thresholding
+		float stdev; // standard deviation cut-off for outliers when thresholding
+		float voxelDiv; // what fraction of the average should be taken to threshold
+		int scanDiv;
 		
-		double[] averages = smoothVolume.dimAverages(newData, 3);
-		
-		System.out.println("Performing " + iterations + " iterations of thresholding on the scan.");
+		System.out.println("Performing " + iter + " iterations of thresholding on the scan.");
 		
 		int counter = 0;
-		while (counter < iterations) {
+		while (counter < iter) {
 			
 			// *** EDIT THESE LINES TO CHANGE DEFAULT PARAMETERS *** //
-			//int lowBound = (int) average/2; // lowest voxel intensity to stop at
-			//int lowBound = 11;
+			voxelDiv = (float) 1.5; // lowest (intensity/voxelDiv) value to stop at
+			scanDiv = 3;
+			stdev = (float) 2;
+			erode = 11;
 			//int depth = 3; // depth to traverse scan in correcting over-shots of the pial surface
 			//int fill = 2; // value to fill in overshots with
 			
+			float[] avgs = smoothVolume.dimAverages(newData, 3);
+			
 			if (smooth) {
+				
 				newData = smoothVolume.movingAverage(newData, 2);
 			}
+			
 			if (gradCorr) {
-				newData = thresholdStandardDev.findGrdnt(newData, true, true, true, 3, 3, 10, true, true);
+				
+				newData = thresholdStandardDev.findGrdnt(newData, true, false, false, 3, 3, 9, true, false);
+				newData = thresholdStandardDev.findGrdnt(newData, true, false, false, 3, 3, 8, false, true);
+				newData = thresholdStandardDev.findGrdnt(newData, false, true, false, stdev, 3, 7, true, false);
+				newData = thresholdStandardDev.findGrdnt(newData, false, true, false, stdev, 3, 9, false, true);
+				newData = thresholdStandardDev.findGrdnt(newData, false, false, true, stdev, 3, 14, true, false);
+				newData = thresholdStandardDev.findGrdnt(newData, false, false, true, stdev, 3, 9, false, true);
 			}
+			
 			if (erosion) {
-				newData = smoothVolume.erode(inputNifti, newData, 15, 9, true, true, true, true, true);
-				newData = smoothVolume.erode(inputNifti, newData, 30, 11, true, true, true, true, true);
+				
+				//avgs = smoothVolume.dimAverages(newData, 3);
+				
+				newData = smoothVolume.erode(inputNifti, newData, true, false, false, 20, (float) avgs[0]/2, true, false);
+				newData = smoothVolume.erode(inputNifti, newData, true, false, false, 20, (float) avgs[1]/4, false, true);
+				newData = smoothVolume.erode(inputNifti, newData, false, true, false, 10, (float) avgs[2]/2, true, false);
+				newData = smoothVolume.erode(inputNifti, newData, false, true, false, 10, (float) avgs[3]/2, false, true);
+				newData = smoothVolume.erode(inputNifti, newData, false, false, true, 10, (float) avgs[4]/3, true, false);
+				newData = smoothVolume.erode(inputNifti, newData, false, false, true, 10, (float) avgs[5]/2, false, true);
 			}
+			
 			if (clean) {
+				
 				newData = smoothVolume.cleanUp(newData, 3, true, true, true, true, true); // w/ simpleCleaner
 				newData = smoothVolume.cleanUp(newData, 3, true, true, true, true, false); // w/o simpleCleaner
 			}
+			
 			if (patchOvershots) {
+				
 				newData = smoothVolume.patchOvershots(newData);
+				newData = smoothVolume.patchOvershots(newData);
+				newData = smoothVolume.peripheryClean(newData);
 			}
+			
+			//smoothVolume.histogram(newData, "y", newData.length-1, newData[0][0].length-1, newData[0].length-1, 1, newData[0].length/2);
 			
 			System.out.println("Iteration complete..."); System.out.println("");
 			counter++;
