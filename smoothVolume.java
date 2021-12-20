@@ -546,7 +546,7 @@ public class smoothVolume {
 		// TODO: Can maybe cut the second length in half later on?
 		// traverses each dimension of the scan
 		dataBound = patchSlice(data, patchSlice(data, patchSlice(data, dataBound, 
-				"z", x, y, x), "x", z, y, x), "y", z, x, y);
+				"z", x, y, z), "x", z, y, x), "y", z, x, y);
 		
 		// remaining 0 voxels are in the interior of the brain -> 2
         // outside of the brain "1" voxels are returned to intensity 0.
@@ -731,6 +731,7 @@ public class smoothVolume {
 	}
 	
 	// used for troubleshooting
+	@SuppressWarnings("unused")
 	private static void printGrid(Double[][] data) {
 		for (int i = 0; i < data.length; i++) {
 			System.out.println(data[i][0] + " ");

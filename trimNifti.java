@@ -1,6 +1,9 @@
 
 import java.io.IOException;
 
+//import org.rosuda.REngine.REXPMismatchException;
+//import org.rosuda.REngine.REngineException;
+
 /**
  * @author KJZ
  *
@@ -10,6 +13,20 @@ import java.io.IOException;
 
 public class trimNifti {
 	
+	static int erode; // number of voxels to erode from the edges of the scan
+	static float stdev; // standard deviation cut-off for outliers when thresholding
+	static float voxelDiv; // what fraction of the average should be taken to threshold
+	static int scanDiv;
+	static int depth; 
+	static int fill;
+	
+	// constructor if using UI
+	//public static void runFunctions(int s, int e, int e2, int tb, int td, int c, int p, 
+	//	boolean smooth, boolean erosion, boolean gradCorr, boolean patchOvershots, boolean clean, boolean iter); {
+	//	erode = e; 
+	//	runFunctions()
+	//}
+	
 	public static void runFunctions(Nifti1Dataset inputNifti, boolean smooth, boolean erosion, 
 			boolean gradCorr, boolean patchOvershots, boolean clean, int iter) throws IOException {
 		
@@ -18,12 +35,11 @@ public class trimNifti {
 		
 		//set boundary matrix
 		double average = smoothVolume.totalAverage(newData, true); // TODO: adjust values below based on average
-		int erode; // number of voxels to erode from the edges of the scan
-		float stdev; // standard deviation cut-off for outliers when thresholding
-		float voxelDiv; // what fraction of the average should be taken to threshold
-		int scanDiv;
+		
 		
 		System.out.println("Performing " + iter + " iterations of thresholding on the scan.");
+		
+		//graphSlice.graphSliceData(inputNifti, newData);
 		
 		int counter = 0;
 		while (counter < iter) {
@@ -45,22 +61,28 @@ public class trimNifti {
 			
 			if (gradCorr) {
 				
-				newData = thresholdStandardDev.findGrdnt(newData, true, false, false, 3, 3, 9, true, false);
-				newData = thresholdStandardDev.findGrdnt(newData, true, false, false, 3, 3, 8, false, true);
-				newData = thresholdStandardDev.findGrdnt(newData, false, true, false, stdev, 3, 7, true, false);
-				newData = thresholdStandardDev.findGrdnt(newData, false, true, false, stdev, 3, 9, false, true);
-				newData = thresholdStandardDev.findGrdnt(newData, false, false, true, stdev, 3, 14, true, false);
-				newData = thresholdStandardDev.findGrdnt(newData, false, false, true, stdev, 3, 9, false, true);
+				// x-dimension
+				newData = thresholdStandardDev.findGrdnt(newData, true, false, false, 3, 3, 80, true, false);
+				newData = thresholdStandardDev.findGrdnt(newData, true, false, false, 3, 3, 80, false, true);
+				// y-dimension
+				newData = thresholdStandardDev.findGrdnt(newData, false, true, false, stdev, 3, 65, true, false);
+				newData = thresholdStandardDev.findGrdnt(newData, false, true, false, stdev, 3, 65, false, true);
+				// z-dimension
+				newData = thresholdStandardDev.findGrdnt(newData, false, false, true, stdev, 3, 65, true, false);
+				newData = thresholdStandardDev.findGrdnt(newData, false, false, true, stdev, 3, 65, false, true);
 			}
 			
 			if (erosion) {
 				
 				//avgs = smoothVolume.dimAverages(newData, 3);
 				
+				// x-dimension
 				newData = smoothVolume.erode(inputNifti, newData, true, false, false, 20, (float) avgs[0]/2, true, false);
 				newData = smoothVolume.erode(inputNifti, newData, true, false, false, 20, (float) avgs[1]/4, false, true);
+				// y-dimension
 				newData = smoothVolume.erode(inputNifti, newData, false, true, false, 10, (float) avgs[2]/2, true, false);
 				newData = smoothVolume.erode(inputNifti, newData, false, true, false, 10, (float) avgs[3]/2, false, true);
+				// z-dimension
 				newData = smoothVolume.erode(inputNifti, newData, false, false, true, 10, (float) avgs[4]/3, true, false);
 				newData = smoothVolume.erode(inputNifti, newData, false, false, true, 10, (float) avgs[5]/2, false, true);
 			}

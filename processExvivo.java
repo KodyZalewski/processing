@@ -4,6 +4,9 @@ import java.util.*;
 import java.util.zip.GZIPInputStream;
 //import java.util.zip.GZIPOutputStream;
 
+//import org.rosuda.REngine.REXPMismatchException;
+//import org.rosuda.REngine.REngineException;
+
 /**
  * @author KJZ 11.1.2019
  * 
@@ -42,9 +45,14 @@ public class processExvivo {
 	public static void setGlobal(String[] args) {
 		STUDY = args[0];
 		SUBJECT = args[1];
-		LOCALPATH = "/home/" + USERID + "/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
-		OUTPUT_PATH =  "/home/" + USERID + "/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
+		//LOCALPATH = "/home/kody/freesurfer/subjects/test/test_FREESURFER/mri/orig/";
+		//OUTPUT_PATH = "/home/kody/freesurfer/subjects/test/test_FREESURFER/mri/orig/";
+		LOCALPATH = "/home/" + USERID + "/work_computer/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
+		OUTPUT_PATH =  "/home/" + USERID + "/work_computer/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
+		//LOCALPATH = "/home/" + USERID + "/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
+		//OUTPUT_PATH =  "/home/" + USERID + "/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
 	}
+	
 	
 	public static void main(String args[]) throws IOException {
 		
@@ -92,19 +100,24 @@ public class processExvivo {
 		
 		// new nifti-1 dataset to copy to
 		Nifti1Dataset outputNifti = new Nifti1Dataset(OUTPUT_PATH + outputFile);
+		File newFile = new File(OUTPUT_PATH + outputFile);
 		
-		if (!outputNifti.exists()) {
-			copyNifti(inputNifti, OUTPUT_PATH + outputFile);
+		// remove old file if it exists
+		if (outputNifti.exists()) {
+			System.out.println("File already exists with that name, replacing... ");
+			newFile.delete();
 		}
 		
+		copyNifti(inputNifti, OUTPUT_PATH + outputFile);
 		outputNifti.readHeader();
 		
 		// *** EDIT THESE LINES FOR CHANGING WHICH FUNCTIONS TO USE *** //
 		boolean smooth = false; 
 		boolean erosion = false; 
-		boolean gradientCorrection = false;
+		boolean gradientCorrection = true;
 		boolean clean = true;
-		boolean patchOvershots = false;
+		boolean patchOvershots = true;
+		
 		
 		// perform data manipulation
 		trimNifti.runFunctions(outputNifti, smooth, erosion, gradientCorrection, patchOvershots, clean, 1);
@@ -157,6 +170,9 @@ public class processExvivo {
 				System.out.println("Please enter a yes or no answer.");
 				checkArgs(args); 
 			}
+		
+		} else if (args.length == 9) {	
+			// put data from UI here to pass to next function
 			
 		} else {
 			System.out.println("Illegal number of arguments.");

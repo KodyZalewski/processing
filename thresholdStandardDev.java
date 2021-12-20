@@ -232,15 +232,15 @@ public class thresholdStandardDev {
 					
 					if (voxVal(data, grdnt, half, i, j, k, dim, incr, bnd)) {
 						break;
-					} else {
+					} else { //
 						data = pushData(data, i, j, k, dim, 0);
 					}
 					
 				}
 			}
 		}
-		return data;
 		
+		return data;
 	}
 	
 	/**
