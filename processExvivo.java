@@ -29,7 +29,7 @@ import java.util.zip.GZIPInputStream;
  * detailing the functionality of the program at: Dale, A.M., Fischl, B., Sereno, M.I., 1999. Cortical surface-based analysis. I. 
  * Segmentation and surface reconstruction. Neuroimage 9, 179-194.
  * 
- * TODO: Change default format from FLOAT to UCHAR or INT, something that won't randomly zero out voxels
+ * TODO: Change default format from FLOAT to UCHAR or INT, something that won't randomly zero out voxels? Not sure why this happens.
  * 
  * TODO: Prior estimations of whole-brain or hemisphere boundaries can be used to better identify boundaries of other scans
  * in the future. 
@@ -45,12 +45,8 @@ public class processExvivo {
 	public static void setGlobal(String[] args) {
 		STUDY = args[0];
 		SUBJECT = args[1];
-		//LOCALPATH = "/home/kody/freesurfer/subjects/test/test_FREESURFER/mri/orig/";
-		//OUTPUT_PATH = "/home/kody/freesurfer/subjects/test/test_FREESURFER/mri/orig/";
-		LOCALPATH = "/home/" + USERID + "/work_computer/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
-		OUTPUT_PATH =  "/home/" + USERID + "/work_computer/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
-		//LOCALPATH = "/home/" + USERID + "/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
-		//OUTPUT_PATH =  "/home/" + USERID + "/Desktop/memorycube/" + STUDY + "/" + SUBJECT + "/" + SUBJECT + "_FREESURFER/mri/orig/";
+		LOCALPATH = "/home/" + USERID + Vars.path1 + STUDY + "/" + SUBJECT + "/" + SUBJECT + Vars.path2;
+		OUTPUT_PATH =  "/home/" + USERID + Vars.path1 + STUDY + "/" + SUBJECT + "/" + SUBJECT + Vars.path2;
 	}
 	
 	
@@ -111,16 +107,8 @@ public class processExvivo {
 		copyNifti(inputNifti, OUTPUT_PATH + outputFile);
 		outputNifti.readHeader();
 		
-		// *** EDIT THESE LINES FOR CHANGING WHICH FUNCTIONS TO USE *** //
-		boolean smooth = false; 
-		boolean erosion = false; 
-		boolean gradientCorrection = true;
-		boolean clean = true;
-		boolean patchOvershots = true;
-		
-		
 		// perform data manipulation
-		trimNifti.runFunctions(outputNifti, smooth, erosion, gradientCorrection, patchOvershots, clean, 1);
+		TrimScan.runFunctions(outputNifti, 1);
 		
 		if (outputNifti.exists()) {
 			System.out.print("File sucessfully written.");
