@@ -9,12 +9,10 @@ import org.rosuda.REngine.REngineException;
 // Requires REngine and RServe libraries to run
 // Creates and graphs the output of the NIFTI scans
 
-//  THIS CLASS IS NOT FINISHED //
+//  THIS CLASS IS NOT FINISHED - make functional with REngine//
 
 public class GraphSlice {
 		
-	public double total;
-	public int width, height;
 	// change to double at some point
 	public static void graphSliceData(Nifti1Dataset niftiScan, double[][][] data) throws REngineException, REXPMismatchException {
 		
@@ -26,86 +24,48 @@ public class GraphSlice {
 		//re.assign("x", Integer.toString(data.length));
 		//re.assign("y", Integer.toString(data[0].length));
 		
-		//double[] vector = new double[niftiScan.XDIM];
-		double[] vector = new double[data.length - 1];
-		double[] vector2 = new double[data[0].length - 1];
-		double[] vector3 = new double[data[0][0].length - 1];
-		String blah = "c( ";
-		String blah2 = "c( ";
-		String blah3 = "c( ";
-		
-		int count = 0; int count2 = 0; double val = 0;
-		
-		// First dimension
-		for (int x = 0; x < data.length - 1 ; x++) {
-			for (int y = 0; y < data[x].length - 1; y++) {
-				for (int z = 0; z < data[x][y].length; z++) {
-					val = data[x][y][z];
-					count++;
-					count2+=val;
-				}
-			}
-			
-			vector[x] = count2/count;
-			blah += vector[x] + ", ";
-			count = 0; count2 = 0;
-		}
-		
-		// Second dimension
-		for (int y = 0; y < data[0].length - 1; y++) {
-			for (int x = 0; x < data.length - 1 ; x++) {
-				for (int z = 0; z < data[0][0].length - 1; z++) {
-				
-					val = data[x][y][z];
-					count++;
-					count2+=val;
-				}
-			}
-					
-			vector2[y] = count2/count;
-			blah2 += vector2[y] + ", ";
-			count = 0; count2 = 0;		
-		}
-		
-		// Third dimension
-		for (int z = 0; z < data[0][0].length -1; z++) {
-			for (int y = 0; y < data[0].length - 1; y++) {
-				for (int x = 0; x < data.length - 1 ; x++) {
-					val = data[x][y][z];
-					count++;
-					count2+=val;
-				}
-			}
-							
-			vector3[z] = count2/count;
-			blah3 += vector3[z] + ", ";
-			count = 0; count2 = 0;		
-		}
-		
 		System.out.println("loading historgram from R...");
 		//re.eval("library(hist)");
 		//re.eval("require(hist)");
 		System.out.println("Done.");
 		
-		//String dist = "Distribution of intensity across scan.";
-		System.out.println(blah + ")");
-		System.out.println(blah2 + ")");
-		System.out.println(blah3 + ")");
+		// TODO: Have to manually input the values to R, why don't they load?
+		RStringX = search(data, data.length, data.length[0], data.length[0][0], "x");
+		RStringY = search(data, data.length[0], data.length[0][0], data[0].length, "y");
+		RStringZ = search(data, data.length[0][0], data[0].length, data.length, "z");
 		
+		String dist = "Distribution of intensity across scan.";
 		//re.assign("dist", dist);
 		//long e = re.rniParse("hist(vector, dist, )", 1);
 		//re.rniEval(e, 0);
 		
-		//return total/(width*height);
+		// for testing
+		System.out.prinln(RStringX);
+		System.out.prinln(RStringY);
+		System.out.prinln(RStringZ);
+
 	}
-	
-	// returns average value of a given slice vector
-	/**public double calcAvg(double[] vector) {
-		int count = 0; int total = 0;	
-		for (int v = 0; v < vector.length -1; v++) {
-			total += vector[v];
-			count++; 
+
+	/**
+	 *  Takes data, x/y/z dimension as string, lengths of MRI dimensions and double vector
+	 *  Returns a string containing the average intensity for each row of X, this can then
+	 *  be graphed using R's histogram function.   
+	 */
+	public static String search(data double[][][], dim, len1, len2, len3) {
+		
+		int count = 0; int count2 = 0; double val = 0; String Rstring = "c( ";
+		
+		for (int dim1 = 0; dim1 < len1 -1; dim1++) {
+			for (int dim2 = 0; dim2 < len2 - 1; dim2++) {
+				for (int dim3 = 0; dim3 < len3 - 1 ; dim3++) {	
+					count++;
+					count2+=CalcScan.pullData(data, dim, dim1, dim2, dim3);
+				}
+			}						
+			Rstring += count2/count + ", ";
+			count = 0; count2 = 0;		
 		}
-		return total/count; 
-	}**/
+		return RString + ")";
+	}
+
 }
